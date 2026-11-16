@@ -17,7 +17,7 @@ def test_layout_update_persists_complete_settings(
 ):
     layout_payload.update(
         {
-            "NAV_BRAND": "Outside Labs",
+            "NAV_BRAND": "wispsy",
             "NAV_PAGES": {"notes": "/notes"},
             "TITLE": "Pretty Notebook",
             "darkmode": True,

@@ -14,8 +14,8 @@ with (PROJECT_ROOT / "pyproject.toml").open("rb") as source:
     release = tomllib.load(source)["project"]["version"]
 
 project = "Pretty Notebook"
-author = "Outside Labs"
-copyright = "%Y, Outside Labs"
+author = "wispsy"
+copyright = "%Y, wispsy"
 extensions = ["myst_parser", "sphinx.ext.autodoc", "sphinx.ext.doctest"]
 source_suffix = {".md": "markdown"}
 root_doc = "index"

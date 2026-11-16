@@ -18,7 +18,7 @@
 			}
 		]
 	},
-	"FOOTER": "<p>Published with Pretty Notebook by <a href=\"https://wispsy.com\">Outside Labs</a>.</p>",
+	"FOOTER": "<p>Published with Pretty Notebook by <a href=\"https://wispsy.com\">wispsy</a>.</p>",
 	"TITLE": "Hello, world!",
 	"darkmode": false,
 	"hljs_light": "default",

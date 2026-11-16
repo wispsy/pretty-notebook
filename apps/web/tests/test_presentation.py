@@ -35,12 +35,12 @@ def test_shared_pages_have_landmarks_focus_target_and_local_layout(client, path)
 
 
 def test_long_titles_and_owner_markup_are_kept_without_a_framework(client, auth_headers, layout_payload):
-    layout_payload.update(TITLE='<long>' * 80, NAV_BRAND='<strong>Outside Labs</strong>',
+    layout_payload.update(TITLE='<long>' * 80, NAV_BRAND='<strong>wispsy</strong>',
                           FOOTER='<p>Owner footer</p>', NAV_PAGES={'Browse': [{'Contact': '/contact'}]})
     assert client.post('/api/layout', headers=auth_headers, json=layout_payload).status_code == 201
     page = client.get('/')
     assert '<h1>&lt;long&gt;' in page.text
-    assert '<strong>Outside Labs</strong>' in page.text
+    assert '<strong>wispsy</strong>' in page.text
     assert '<p>Owner footer</p>' in page.text
     assert '<details class="nav-group">' in page.text
 

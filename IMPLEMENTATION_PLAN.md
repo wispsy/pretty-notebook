@@ -221,7 +221,7 @@ Use publication feature metadata to mark pages containing Mermaid fences. Handle
 
 ### STC-03 — Replace Bootstrap layout with project CSS
 
-Create a compact CSS system for typography, spacing, color, buttons, forms, tables, responsive navigation, code, and light/dark themes. Use semantic HTML, a real flex/grid footer, and the Outside Labs branding controls.
+Create a compact CSS system for typography, spacing, color, buttons, forms, tables, responsive navigation, code, and light/dark themes. Use semantic HTML, a real flex/grid footer, and the wispsy branding controls.
 
 - Remove the current fixed 650px footer spacer.
 - Convert shared/home/contact templates and define reusable classes for later search/console screens.
