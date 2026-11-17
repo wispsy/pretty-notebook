@@ -3,6 +3,30 @@ revision = 5
 requires-python = ">=3.14"
 
 [[package]]
+name = "astree"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/78/028d0248e31236a3e0f49251652e5d2d7427f93e7feb4263115bf4a43d71/astree-0.1.0.tar.gz", hash = "sha256:c4da48e551b46d2241e3d92f384c87ad04b0de0f7f2467f6586a91b419116cc4", size = 19177, upload-time = "2026-11-08T22:25:46.924Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/03/237d6981288c60dbbac2e699c97f44bf118ad8fa021baee85cf07f2827ae/astree-0.1.0-py3-none-any.whl", hash = "sha256:0b6cc157d6407945a99f89cf761915b09d91e073126b97b4e300ddf4815fada2", size = 12865, upload-time = "2026-11-08T22:25:45.553Z" },
+]
+
+[[package]]
+name = "escape-colors"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/14/c9/b6554549d6c00d8086b371dd540e358437e0b89a75f7f8400342c3eef82a/escape_colors-0.3.0.tar.gz", hash = "sha256:6ed3e7fc6adf924455dfc9ef745e657a95aca04a38ae1d385089887f8dabc256", size = 21322, upload-time = "2026-11-17T02:27:23.82Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/34/4c/9d6c93da2b93d89ba06b7074685f904ba90c09a1e58d725af9c0042a1105/escape_colors-0.3.0-py3-none-any.whl", hash = "sha256:949ce4287e6d5932d8e290cadae53bb249dd5ab60826b6ae1be64704255cde53", size = 26648, upload-time = "2026-11-17T02:27:22.584Z" },
+]
+
+[package.optional-dependencies]
+markdown = [
+    { name = "astree" },
+    { name = "parse-md" },
+]
+
+[[package]]
 name = "expose-interface"
 version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -21,27 +45,6 @@ wheels = [
 ]
 
 [[package]]
-name = "markdown-it-py"
-version = "4.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "mdurl" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/06/ff/7841249c247aa650a76b9ee4bbaeae59370dc8bfd2f6c01f3630c35eb134/markdown_it_py-4.2.0.tar.gz", hash = "sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49", size = 82454, upload-time = "2026-05-07T12:08:28.36Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl", hash = "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a", size = 91687, upload-time = "2026-05-07T12:08:27.182Z" },
-]
-
-[[package]]
-name = "mdurl"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
-]
-
-[[package]]
 name = "parse-md"
 version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -55,10 +58,10 @@ name = "pretty-notebook"
 version = "0.12.0"
 source = { editable = "." }
 dependencies = [
+    { name = "escape-colors", extra = ["markdown"] },
     { name = "expose-interface" },
     { name = "parse-md" },
     { name = "requ" },
-    { name = "rich" },
 ]
 
 [package.optional-dependencies]
@@ -68,22 +71,13 @@ legacy-markdown = [
 
 [package.metadata]
 requires-dist = [
+    { name = "escape-colors", extras = ["markdown"], specifier = ">=0.3.0,<0.4" },
     { name = "expose-interface", specifier = ">=0.1.0,<0.2" },
     { name = "markdown", marker = "extra == 'legacy-markdown'", specifier = ">=3.3.4" },
     { name = "parse-md", specifier = ">=0.1.0,<0.2" },
     { name = "requ", specifier = ">=0.2.0,<0.3" },
-    { name = "rich", specifier = ">=10.6" },
 ]
 provides-extras = ["legacy-markdown"]
-
-[[package]]
-name = "pygments"
-version = "2.21.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/49/2e/ced460408999b33da6b31b0021b0f37d329e202d4169aeb164493778f25b/pygments-2.21.0.tar.gz", hash = "sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c", size = 5005329, upload-time = "2026-08-17T08:02:48.824Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl", hash = "sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9", size = 1250147, upload-time = "2026-08-17T08:02:44.912Z" },
-]
 
 [[package]]
 name = "requ"
@@ -92,17 +86,4 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/41/ff/4531f7b455b747c46b2969dccc9195253e75a663bb26f32e30ca6d6a651d/requ-0.2.0.tar.gz", hash = "sha256:55100d65155deeecf4381085e2636dd6901e6b463f6afb7abb282193125d3af8", size = 28573, upload-time = "2026-11-17T02:20:34.236Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9a/2a/38a905c604adfbef775e2c8b2da84dd6f679f6766206e24435c3beacc90f/requ-0.2.0-py3-none-any.whl", hash = "sha256:f9ff0c66e2734e5ff7e2cf463df4065f29d1a7579cd8cfef9e53c6f3bec097c5", size = 15575, upload-time = "2026-11-17T02:20:32.955Z" },
-]
-
-[[package]]
-name = "rich"
-version = "15.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markdown-it-py" },
-    { name = "pygments" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
 ]

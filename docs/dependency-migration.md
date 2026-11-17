@@ -43,3 +43,24 @@ old plans must be reviewed again after an implementation change.
 Rollback uses the complete previous qualified package revision and lock together,
 then prepares fresh publication plans. It does not rewrite stored Markdown or
 reuse plans produced by a different renderer implementation.
+
+## Terminal output
+
+Escape Colors 0.3 with its Markdown extra replaces Rich. Parse MD supplies the
+same extended syntax and Astree supplies the HTML tree; Escape Colors owns
+terminal layout and registered syntax highlighting. Notebook adapters supply
+the refresh/edit/new-note menu and resolved local wiki links. Code and inline
+literal text are never rewritten by a wiki-link regular expression.
+
+`pnbp pprint` displays current pending content without saving it. Redirected or
+NO_COLOR output is plain, including visible destinations. A supported TTY gets
+styles and explicitly selected HTTP/mail and notebook pnbp/nano OSC 8 links.
+These links do not install/register protocol handlers or launch an editor;
+macOS protocol-handler support remains deferred. Images have readable labels.
+Raw author HTML is escaped for terminal display and source controls are escaped.
+Parsing and layout have finite node, nesting, character, line and output limits;
+failures write no partial display.
+
+`get_terminal_note` returns buffered text with explicit width/color/hyperlink
+options. The historical `get_rich_note` spelling remains available and returns
+plain text in 0.12, without a Rich renderable object.
