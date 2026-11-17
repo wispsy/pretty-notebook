@@ -10,7 +10,7 @@ distribution contains metadata only and installs the canonical package.
 
 The historical `pnbp==0.9.0` release retains its versioned contract in the
 [0.9 notes](release-0.9.0.md). See [package migration](package-migration.md),
-[0.11 notes](release-0.12.0.md) and [readiness evidence](release-0.12.0-readiness.md).
+[0.12 notes](release-0.12.0.md) and [dependency migration](dependency-migration.md).
 Optional and later features remain explicitly deferred.
 
 The repository Markdown is the canonical documentation. The documentation
