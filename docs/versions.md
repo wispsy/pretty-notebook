@@ -1,16 +1,16 @@
 # Versions and support
 
-The development checkout prepares 0.12.0 on Python 3.14+. See the
+Version 0.12.0 requires Python 3.14+. See the
 [dependency migration](dependency-migration.md) for the upstream package changes.
 
-The current release is `pretty-notebook==0.11.0`, supporting the Python library
-and CLI on Python 3.11 or newer. `pretty_notebook` is the canonical import;
-compatible `pnbp` imports and the CLI remain supported. The final `pnbp==0.11.0`
+The current release is `pretty-notebook==0.12.0`, supporting the Python library
+and CLI on Python 3.14 or newer. `pretty_notebook` is the canonical import;
+compatible `pnbp` imports and the CLI remain supported. The final `pnbp==0.12.0`
 distribution contains metadata only and installs the canonical package.
 
 The historical `pnbp==0.9.0` release retains its versioned contract in the
 [0.9 notes](release-0.9.0.md). See [package migration](package-migration.md),
-[0.11 notes](release-0.11.0.md) and [readiness evidence](release-0.11.0-readiness.md).
+[0.12 notes](release-0.12.0.md) and [dependency migration](dependency-migration.md).
 Optional and later features remain explicitly deferred.
 
 The repository Markdown is the canonical documentation. The documentation

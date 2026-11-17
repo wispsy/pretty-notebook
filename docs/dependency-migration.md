@@ -1,6 +1,6 @@
-# Dependency migration toward 0.12
+# Dependency migration in 0.12
 
-The development checkout prepares Pretty Notebook 0.12.0 and requires Python
+Pretty Notebook 0.12.0 requires Python
 3.14 or newer, including the metadata-only pnbp compatibility distribution.
 The published 0.11.0 release retains its historical Python 3.11+ contract.
 
