@@ -1,3 +1,4 @@
-# Qualified unreleased snapshot profile; not the PyPI 0.1.0 API.
-backpack-store @ https://github.com/wispsy/backpack/archive/696936ea2af46876bee61aefbf703a52edecc529.tar.gz \
-    --hash=sha256:2a1a2b4af320f5bc7685b092e681f2f445a64d6d90912d4c6fd6fd54ca6765db
+# Published, qualified SQLite snapshot/application profile.
+backpack-store==0.2.0 \
+    --hash=sha256:1e7f0a58e15e82c5ba1586a1b16908e7efd80a2222babe67861db8b261c5c47e \
+    --hash=sha256:7c74b817b16a822e659f734214dd12aef5b11188481c4fcd6f25652e5674394e

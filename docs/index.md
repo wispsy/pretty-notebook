@@ -18,6 +18,7 @@ tutorials
 versions
 package-migration
 dependency-migration
+web-framework-migration
 settings
 editing
 local-search

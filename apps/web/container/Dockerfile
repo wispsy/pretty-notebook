@@ -18,7 +18,7 @@ COPY apps/web/views /app/web/views
 COPY apps/web/templates/shared /app/web/templates/shared
 COPY apps/web/templates/home /app/web/templates/home
 COPY apps/web/static /app/web/static
-COPY apps/web/main.py apps/web/assets.py apps/web/web_config.py apps/web/install_assets.py apps/web/web-settings.json /app/web/
+COPY apps/web/main.py apps/web/expose_web.py apps/web/assets.py apps/web/web_config.py apps/web/install_assets.py apps/web/web-settings.json /app/web/
 COPY apps/web/container/start.py apps/web/container/healthcheck.py /app/web/container/
 RUN cd /app/web && python install_assets.py --check
 

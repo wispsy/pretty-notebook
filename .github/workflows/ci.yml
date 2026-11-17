@@ -152,7 +152,7 @@ jobs:
 
       - name: Run web integration tests
         run: |
-          python -m coverage run --branch --source=api,views,main,assets,install_assets,web_config -m pytest tests
+          python -m coverage run --branch --source=api,views,main,expose_web,assets,install_assets,web_config -m pytest tests
           python -m coverage report --show-missing --fail-under=95
 
       - name: Set up JavaScript test runtime

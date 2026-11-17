@@ -34,7 +34,7 @@ def prepare_storage() -> None:
         create_text_once(layout_api.WEB_SETTINGS_PATH, defaults)
 
 
-def create_app(
+def create_fastapi_app(
     *,
     db_url: str = DEFAULT_DATABASE_URL,
     allowed_hosts: list[str] | None = None,
@@ -148,6 +148,23 @@ def create_app(
     app.include_router(home.router)
 
     return app
+
+
+def create_app(
+    *,
+    db_url: str = DEFAULT_DATABASE_URL,
+    allowed_hosts: list[str] | None = None,
+    root_path: str | None = None,
+    framework: str | None = None,
+):
+    """Select the HTTP factory while preserving the qualified storage lifecycle."""
+    selected = web_config.web_framework(framework)
+    baseline = create_fastapi_app(db_url=db_url, allowed_hosts=allowed_hosts, root_path=root_path)
+    baseline.framework = 'fastapi'
+    if selected == 'fastapi':
+        return baseline
+    from expose_web import ExposedApplication
+    return ExposedApplication(baseline)
 
 
 api = create_app()

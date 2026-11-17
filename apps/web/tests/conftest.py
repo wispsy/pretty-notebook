@@ -40,6 +40,13 @@ DEFAULT_LAYOUT = {
 }
 
 
+@pytest.fixture(params=('fastapi', 'expose-api'), autouse=True)
+def web_framework(request, monkeypatch):
+    """Run the unchanged protocol fixtures against each selected HTTP factory."""
+    monkeypatch.setenv('PNBP_WEB_FRAMEWORK', request.param)
+    return request.param
+
+
 @pytest.fixture()
 def web_storage(tmp_path, monkeypatch):
     templates = tmp_path / "templates"

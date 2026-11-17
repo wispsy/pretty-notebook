@@ -4,6 +4,7 @@ aiofiles
 aiosqlite
 bcrypt
 coverage==7.16.1
+expose-api
 fastapi
 httpx2==2.13.1
 Jinja2

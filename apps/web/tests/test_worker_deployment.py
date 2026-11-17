@@ -25,13 +25,15 @@ def server(tmp_path):
         listener.bind(('127.0.0.1', 0))
         port = listener.getsockname()[1]
     # Test-only middleware identifies the worker that served each response.
-    (tmp_path / 'worker_fixture.py').write_text('''from main import api
+    (tmp_path / 'worker_fixture.py').write_text('''from main import api as application
 import os
-@api.middleware("http")
-async def identify(request, call_next):
-    response = await call_next(request)
-    response.headers["X-Test-Worker"] = str(os.getpid())
-    return response
+async def api(scope, receive, send):
+    async def identify(event):
+        if event['type'] == 'http.response.start':
+            event = {**event, 'headers': [*event.get('headers', ()),
+                (b'x-test-worker', str(os.getpid()).encode('ascii'))]}
+        await send(event)
+    await application(scope, receive, identify)
 ''')
     state = tmp_path / 'state'
     environment = {**os.environ, 'JWT_SECRET': 'worker-test-jwt-secret-32-bytes-xxxx',

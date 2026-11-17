@@ -124,6 +124,9 @@ click==8.4.2 \
 escape-colors==0.3.0 \
     --hash=sha256:6ed3e7fc6adf924455dfc9ef745e657a95aca04a38ae1d385089887f8dabc256 \
     --hash=sha256:949ce4287e6d5932d8e290cadae53bb249dd5ab60826b6ae1be64704255cde53
+expose-api==0.2.0 \
+    --hash=sha256:03d1970143a64e40ef9230dcb6cfc2b5c988af789a04b392d6d458f1f515e91c \
+    --hash=sha256:ca8b894b91caa176e77426580da37e2a5dd2060c19d41b28e34fcadd287c255a
 expose-interface==0.1.0 \
     --hash=sha256:6ec6736b98e777ea63dcfe4fd99e87e2fade3e27fc659acace919bed8860d689 \
     --hash=sha256:76c74d5e0fbae7a1c715ec7aaf89403644a67c0bd8a861eb0fe2d38059ef5dda
