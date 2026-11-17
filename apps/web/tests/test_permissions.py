@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 import hashlib
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from tortoise import connections
 

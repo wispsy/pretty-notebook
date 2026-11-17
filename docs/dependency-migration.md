@@ -20,9 +20,11 @@ multipart framing and 2,000,000-character JSON publications. Responses have a
 64 MiB limit. Invalid or oversized inputs and transport failures use Requ's
 request exception family; CLI errors omit private values.
 
-The web application retains its current FastAPI/Starlette implementation. Its
-dependency lock and deployment Python selection follow the root package's 3.14
-minimum; changing the HTTP client does not begin the web framework migration.
+The immutable 0.12.0 package release records the FastAPI/Starlette web baseline.
+The subsequent [web framework migration](web-framework-migration.md) uses
+Expose API 0.2.0, removes both framework runtime dependencies and preserves
+Tortoise, Pydantic, Jinja2 and SQLite. The web dependency lock and deployment
+Python selection follow the root package's 3.14 minimum.
 
 ## Markdown engine
 

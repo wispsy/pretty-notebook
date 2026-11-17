@@ -1,13 +1,14 @@
 """Literal anonymous search over current public publication revisions."""
 
-import asyncio
-from typing import Annotated, Literal
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
 
-from fastapi import APIRouter, HTTPException, Query, Request
+import asyncio
+from typing import Literal
+
 
 from .public_index import IndexCapacityError, search_documents, validate_search
 
-router = APIRouter()
 SearchField = Literal["any", "title", "content", "tag"]
 
 
@@ -26,10 +27,9 @@ async def results(request, q, field, tags, limit, offset):
                                    tags=tags, limit=limit, offset=offset)
 
 
-@router.get("/api/search")
-async def search(request: Request, q: Annotated[str, Query(min_length=1, max_length=512)],
+async def search(request: Request, q: str,
                  field: SearchField = "any",
-                 tag: Annotated[list[str], Query()] = [],
-                 limit: Annotated[int, Query(ge=1, le=100)] = 20,
-                 offset: Annotated[int, Query(ge=0, le=10_000)] = 0):
+                 tag: list[str] = [],
+                 limit: int = 20,
+                 offset: int = 0):
     return await results(request, q, field, tag, limit, offset)

@@ -10,11 +10,10 @@ import json
 from types import SimpleNamespace
 
 from expose_api import JSONResponse, MultipartLimits, Response, UploadFile
-from fastapi import HTTPException
+from expose_api import HTTPException
 from pydantic import BaseModel, TypeAdapter, ValidationError
-from starlette.responses import Response as BaselineResponse
 
-from api import auth_api
+from web_errors import InputErrors
 
 MISSING = object()
 BODY_LIMIT = 16 * 1024 * 1024
@@ -93,25 +92,15 @@ def json_value(value):
     return value
 
 
-class TemplateResponse(Response):
-    """Retain template debug metadata while the baseline remains selectable."""
-
-    def __init__(self, response):
-        super().__init__(response.body, status=response.status_code, headers=response.raw_headers)
-        self.response = response
-
-    async def __call__(self, scope, receive, send):
-        await self.response(scope, receive, send)
-
-
 def response_for(value, *, status=200):
     if isinstance(value, Response):
         return value
-    if isinstance(value, BaselineResponse) and hasattr(value, 'context'):
-        return TemplateResponse(value)
-    if isinstance(value, BaselineResponse):
-        return Response(value.body, status=value.status_code, headers=value.raw_headers)
     return JSONResponse(json_value(value), status=status)
+
+
+@dataclass
+class ResponseMetadata:
+    headers: dict
 
 
 @dataclass(frozen=True)
@@ -120,6 +109,7 @@ class Authentication:
 
 
 async def authentication(request, overrides):
+    from api import auth_api
     override = overrides.get(auth_api.get_current_user)
     if override is not None:
         user = override()
@@ -152,14 +142,14 @@ async def json_body(request):
     try:
         return JSONBody(json.loads(body))
     except json.JSONDecodeError as error:
-        raise HTTPException(422, [{'type': 'json_invalid', 'loc': ['body', error.pos],
+        raise InputErrors([{'type': 'json_invalid', 'loc': ['body', error.pos],
             'msg': 'JSON decode error', 'input': {}, 'ctx': {'error': error.msg}}]) from None
     except UnicodeDecodeError:
         raise HTTPException(400, 'There was an error parsing the body') from None
 
 
 def missing_input(*path):
-    raise HTTPException(422, [{'type': 'missing', 'loc': ['body', *path],
+    raise InputErrors([{'type': 'missing', 'loc': ['body', *path],
                              'msg': 'Field required', 'input': None}])
 
 
@@ -173,7 +163,7 @@ async def model_input(request, schema):
         details = error.errors(include_url=False)
         for detail in details:
             detail['loc'] = ['body', *detail['loc']]
-        raise HTTPException(422, json_value(details)) from None
+        raise InputErrors(json_value(details)) from None
 
 
 @dataclass(frozen=True)
@@ -216,7 +206,7 @@ async def file_input(request):
         missing_input('file')
     if not isinstance(value, UploadFile):
         message = f"Expected UploadFile, received: {type(value)}"
-        raise HTTPException(422, [{'type': 'value_error', 'loc': ['body', 'file'],
+        raise InputErrors([{'type': 'value_error', 'loc': ['body', 'file'],
             'msg': 'Value error, ' + message, 'input': json_value(value), 'ctx': {'error': {}}}])
     return value
 
@@ -239,7 +229,7 @@ def validated(schema, value, location, errors):
 
 def raise_inputs(errors):
     if errors:
-        raise HTTPException(422, json_value(errors))
+        raise InputErrors(json_value(errors))
 
 
 async def query_input(request, schema):

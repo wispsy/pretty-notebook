@@ -1,12 +1,14 @@
 """Native publishing routing, wire ordering and owned upload acceptance."""
 
 import asyncio
+import json
+from pathlib import Path
 from functools import partial
 
 from expose_api import TestClient as AsyncClient
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from main import create_app
 
@@ -14,14 +16,12 @@ from main import create_app
 @pytest.mark.parametrize('web_framework', ['expose-api'], indirect=True)
 def test_native_publishing_bypasses_baseline_routes(web_storage, root_credentials, bootstrap_headers, monkeypatch):
     app = create_app(db_url='sqlite://:memory:', framework='expose-api')
-    async def refused(scope, receive, send):
-        raise AssertionError('The baseline HTTP router handled a native publication')
     with TestClient(app) as client:
         assert client.post('/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
         token = client.post('/api/token', data={'username': root_credentials['username'],
                                              'password': root_credentials['password_hash']}).json()['access_token']
         headers = {'Authorization': 'Bearer ' + token}
-        monkeypatch.setattr(app.baseline, 'middleware_stack', refused)
+        assert not hasattr(app, 'baseline')
         response = client.post('/api/publishment', json={'name': 'one', 'content': '<p>Native</p>'}, headers=headers)
         assert response.status_code == 201 and response.headers['X-PNBP-Operation-ID']
         assert client.get('/api/publishments', headers=headers).json()[0]['pub_name'] == 'one.html'
@@ -34,7 +34,7 @@ def test_native_publishing_bypasses_baseline_routes(web_storage, root_credential
         assert client.portal.call(partial(app.state.publications.inventory)) == []
 
 
-@pytest.mark.parametrize('web_framework', ['fastapi'], indirect=True)
+@pytest.mark.parametrize('web_framework', ['expose-api'], indirect=True)
 @pytest.mark.parametrize('authenticated', [False, True])
 def test_wire_and_semantic_validation_transcripts_match(web_storage, tmp_path, root_credentials, bootstrap_headers, authenticated):
     database = f'sqlite://{tmp_path / "wire.sqlite3"}'
@@ -47,24 +47,21 @@ def test_wire_and_semantic_validation_transcripts_match(web_storage, tmp_path, r
         ('/api/image', {'content': b'invalid', 'headers': {'Content-Type': 'multipart/form-data; boundary=missing'}}),
         ('/api/image', {'content': b'invalid', 'headers': {'Content-Type': 'multipart/form-data'}}),
     ]
-    transcripts, headers = [], {}
-    for framework in ('fastapi', 'expose-api'):
-        with TestClient(create_app(db_url=database, framework=framework)) as client:
-            if framework == 'fastapi':
-                assert client.post('/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
-                token = client.post('/api/token', data={'username': root_credentials['username'],
-                    'password': root_credentials['password_hash']}).json()['access_token']
-                headers = {'Authorization': 'Bearer ' + token} if authenticated else {}
-            transcript = []
-            for path, values in cases:
-                values = dict(values)
-                values['headers'] = {**values.get('headers', {}), **headers}
-                response = client.post(path, **values)
-                stable = dict(response.headers)
-                stable.pop('x-pnbp-operation-id', None)
-                transcript.append((response.status_code, response.content, stable))
-            transcripts.append(transcript)
-    assert transcripts[0] == transcripts[1]
+    with TestClient(create_app(db_url=database)) as client:
+        assert client.post('/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
+        token = client.post('/api/token', data={'username': root_credentials['username'],
+            'password': root_credentials['password_hash']}).json()['access_token']
+        headers = {'Authorization': 'Bearer ' + token} if authenticated else {}
+        transcript = []
+        for path, values in cases:
+            values = dict(values)
+            values['headers'] = {**values.get('headers', {}), **headers}
+            response = client.post(path, **values)
+            stable = dict(response.headers)
+            stable.pop('x-pnbp-operation-id', None)
+            transcript.append({'status': response.status_code, 'body': response.text, 'headers': stable})
+    recorded = json.loads(Path(__file__).with_name('fixtures').joinpath('http-validation.json').read_text())
+    assert transcript == recorded['groups']['publishing-' + str(authenticated).lower()]
 
 
 def test_unexpected_failure_retains_public_body_and_native_security(client, auth_headers, monkeypatch, web_framework):

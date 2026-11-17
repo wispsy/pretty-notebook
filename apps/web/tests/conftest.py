@@ -8,13 +8,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from fastapi.testclient import TestClient
-from starlette.templating import Jinja2Templates
+from starlette.testclient import TestClient
 from pretty_notebook.appearance import DEFAULT_APPEARANCE
 
 WEB_ROOT = Path(__file__).resolve().parents[1]
 if str(WEB_ROOT) not in sys.path:
     sys.path.insert(0, str(WEB_ROOT))
+
+from web_templates import Templates as Jinja2Templates
 
 os.environ["JWT_SECRET"] = "test-only-jwt-secret-do-not-use-1234"
 os.environ["JWT_ALGO"] = "HS256"
@@ -40,7 +41,7 @@ DEFAULT_LAYOUT = {
 }
 
 
-@pytest.fixture(params=('fastapi', 'expose-api'), autouse=True)
+@pytest.fixture(params=('expose-api',), autouse=True)
 def web_framework(request, monkeypatch):
     """Run the unchanged protocol fixtures against each selected HTTP factory."""
     monkeypatch.setenv('PNBP_WEB_FRAMEWORK', request.param)

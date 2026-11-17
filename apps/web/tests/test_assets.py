@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 import pytest
 from assets import AssetResolver
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 
 STATIC = Path(__file__).resolve().parents[1] / "static"

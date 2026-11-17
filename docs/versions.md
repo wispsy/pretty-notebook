@@ -19,7 +19,7 @@ There is one source page per topic; the [tutorial](tutorials.md) links those
 contracts together. To inspect a release's historical source, select its tag in
 GitHub rather than treating `main` as the installed release's reference.
 
-The FastAPI publisher is a separate repository application with its own pinned
+The Expose API publisher is a separate repository application with its own pinned
 dependencies. Its supported deployment is one Gunicorn instance with up to four workers,
 one local SQLite database and explicitly owned public notebooks behind a TLS proxy. Follow [web deployment](web.md)
 for the current contract. Browser sessions, private-reader access, share links, remote Markdown history,
