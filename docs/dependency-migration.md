@@ -64,3 +64,12 @@ failures write no partial display.
 `get_terminal_note` returns buffered text with explicit width/color/hyperlink
 options. The historical `get_rich_note` spelling remains available and returns
 plain text in 0.12, without a Rich renderable object.
+
+## Certificate and build-tool pins
+
+The web profile pins certifi 2026.10.18 to remove the affected emSign trust roots
+identified by GHSA-6q48-6c7w-9gw2, and setuptools 84.1.0 for
+GHSA-xmj3-9gf7-h52w. Canonical and compatibility source builds require the patched
+setuptools floor. The Linux/Python 3.14 dependency hashes are regenerated without
+changing the web framework or storage profile. The core Requ transport uses its
+verified standard-library TLS context, without a certifi dependency.
