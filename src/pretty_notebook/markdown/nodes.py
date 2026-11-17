@@ -1,5 +1,7 @@
 """Shared immutable Markdown values and notebook compatibility adapters."""
 
+from dataclasses import dataclass
+
 from parse_md.nodes import (
     literal, safe_url, Node, Text, Container, BoldText,
     ItalicText, Paragraph, Heading, ListItem, BulletList, OrderedList,
@@ -13,6 +15,7 @@ from parse_md.nodes import Document as _Document
 NotebookLink = WikiLink
 
 
+@dataclass(frozen=True, init=False)
 class Document(_Document):
     """Preserve the notebook renderer default while sharing generic nodes."""
 
