@@ -1,12 +1,16 @@
 """Explicit native handlers over the application's shared services."""
 
-from expose_api import App, JSONResponse
+import logging
+
+from expose_api import App, JSONResponse, Response
 from fastapi import HTTPException
 from pydantic import BaseModel, Field, ValidationError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from api.health import health_status
 from api.search_api import SearchField, results
+from native_requests import ApplicationRequest, json_value
+from native_publishing import PublishingAudit, register, selected
 
 
 class SearchQuery(BaseModel):
@@ -15,14 +19,6 @@ class SearchQuery(BaseModel):
     tag: list[str] = Field(default_factory=list)
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0, le=10_000)
-
-
-class ApplicationRequest:
-    """Bind an HTTP request to the existing application-owned services."""
-
-    def __init__(self, request, application):
-        self.app = application
-        self.query_params = request.query_params
 
 
 class _SecurityHeaders:
@@ -52,7 +48,7 @@ class _SecurityHeaders:
 
 
 class ExposedApplication:
-    """Native health/search with explicit delegation of the remaining groups.
+    """Native pilot and publishing routes with explicit remaining-group delegation.
 
     One baseline lifespan retains ORM startup, migrations, process locks and
     shutdown while the application handlers are ported in focused groups.
@@ -68,12 +64,18 @@ class ExposedApplication:
         self.dependency_overrides = baseline.dependency_overrides
         self.http_app = App(title='Pretty Notebook', max_body_size=16 * 1024 * 1024)
         self.http_app.add_middleware(_SecurityHeaders, assets=self.state.assets)
+        self.http_app.add_middleware(PublishingAudit, services=baseline)
         self.http_app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
         @self.http_app.exception_handler(HTTPException)
         async def public_error(request, error):
-            return JSONResponse({'detail': error.detail}, status=error.status_code,
+            return JSONResponse({'detail': json_value(error.detail)}, status=error.status_code,
                                 headers=error.headers or ())
+
+        @self.http_app.exception_handler(Exception)
+        async def internal_error(request, error):
+            logging.getLogger(__name__).error('Unhandled web application error (%s).', type(error).__name__)
+            return Response(b'Internal Server Error', status=500, media_type='text/plain; charset=utf-8')
 
         @self.http_app.route('/healthz', public=True)
         async def health(request):
@@ -98,12 +100,15 @@ class ExposedApplication:
                                   selected.tag, selected.limit, selected.offset)
             return JSONResponse(value)
 
+        register(self.http_app, baseline, self.dependency_overrides)
+
     async def __call__(self, scope, receive, send):
         root = (self.root_path or scope.get('root_path', '')).rstrip('/')
         path = scope.get('path', '')
         if root and (path == root or path.startswith(root + '/')):
             path = path[len(root):] or '/'
-        if scope['type'] == 'http' and scope['method'] == 'GET' and path in self.native_paths:
+        if scope['type'] == 'http' and ((scope['method'] == 'GET' and path in self.native_paths)
+                                      or selected(scope['method'], path)):
             await self.http_app({**scope, 'root_path': root}, receive, send)
         else:
             # Non-GET method behavior and unported groups retain the recorded

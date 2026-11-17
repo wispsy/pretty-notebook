@@ -55,7 +55,8 @@ async def _finish(request, event_id, status_code):
         logging.getLogger(__name__).error('Could not finalize a server operation receipt.')
 
 
-async def audit_request(request, call_next):
+async def begin_audit(request):
+    """Begin the same redacted operation receipt for either HTTP factory."""
     path = request.url.path.removeprefix(request.scope.get('root_path', ''))
     operation = None
     if request.method in {'POST', 'PUT'}:
@@ -66,20 +67,30 @@ async def audit_request(request, call_next):
     elif request.method == 'DELETE' and path.startswith(('/api/publishment/', '/api/publishing/publication/')):
         operation = 'prune'
     if operation is None:
-        return await call_next(request)
+        return None
     scheme, _, token = request.headers.get('Authorization', '').partition(' ')
     if scheme.casefold() != 'bearer' or not token:
-        return await call_next(request)
+        return None
     try:
         user = await get_current_user(token)
         await authorize(user, 'publish', request.headers.get('X-PNBP-Notebook', 'default'))
         await notebook_record(request.headers.get('X-PNBP-Notebook', 'default'))
     except HTTPException:
-        return await call_next(request)
+        return None
     try:
-        event_id, operation_id = await _start(request, user, operation)
+        return await _start(request, user, operation)
     except Exception:
-        return JSONResponse({'detail': 'Operation logging is unavailable; no publication was attempted.'}, status_code=503)
+        raise HTTPException(503, 'Operation logging is unavailable; no publication was attempted.') from None
+
+
+async def audit_request(request, call_next):
+    try:
+        receipt = await begin_audit(request)
+    except HTTPException as error:
+        return JSONResponse({'detail': error.detail}, status_code=error.status_code)
+    if receipt is None:
+        return await call_next(request)
+    event_id, operation_id = receipt
     try:
         response = await call_next(request)
     except BaseException:

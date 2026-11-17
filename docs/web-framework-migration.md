@@ -60,3 +60,26 @@ inventory/selectable harness; PNB-WEB-02 ports health/search, PNB-WEB-03 ports
 authenticated publishing/uploads, and PNB-WEB-04 qualifies remaining groups and
 switches the default. Keep each PR focused and collect passing checks before
 merging the dependent stack. Package publication does not deploy a running site.
+
+
+## Authenticated publishing stage
+
+The Expose API selection now owns all legacy publishing/preview/image handlers
+and the checked publishing group. Explicit typed request providers retain the
+authenticated principal, decoded JSON and managed multipart resources. JWT and
+script-credential verification, notebook permissions, revisions, ETags, hash
+checks, rollback and publication services are reused directly. Syntax decoding
+precedes authentication; semantic model/file validation follows it, matching the
+recorded error ordering. Wire bodies have a 16 MiB total bound; image services
+retain their existing 10 MiB limit and filename/signature checks.
+
+Both factories use one shared redacted audit-begin service. The native ordinary
+ASGI audit middleware completes the same receipt at response-start and preserves
+the operation correlation header, retention, failure and recovery rules. Managed
+upload providers remain open through handler/response ownership and close every
+parsed file on exit. Unsupported methods and unported groups still delegate.
+
+Unexpected handler failures retain the baseline's value-free plaintext 500 body
+and media type. The native final boundary also retains configured security and
+no-store headers, plus the operation correlation receipt on these errors; the
+baseline could omit them when an exception escaped its HTTP middleware.
