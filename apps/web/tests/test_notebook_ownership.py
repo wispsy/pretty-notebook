@@ -5,7 +5,7 @@ import sqlite3
 from contextlib import closing
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from api import catalog, permissions, schema
 from test_permissions import sql

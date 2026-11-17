@@ -2,7 +2,7 @@ import json
 from functools import partial
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from api import public_index
 from api.public_index import PublicDocument, PublicHeading

@@ -1,19 +1,19 @@
 """Notebook-scoped operation events with bounded retention and redacted fields."""
 
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 from datetime import UTC, datetime, timedelta
 import logging
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
 from tortoise import connections
 
 from .auth_api import get_current_user
 from .notebooks import notebook_record
-from .permissions import authorize, require_permission
+from .permissions import authorize
 from pretty_notebook._internal.operation_logs import MAX_EVENTS, RETENTION_DAYS
 
-router = APIRouter()
 OPERATIONS_SCHEMA = (
     '''CREATE TABLE pnbp_operation_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +55,8 @@ async def _finish(request, event_id, status_code):
         logging.getLogger(__name__).error('Could not finalize a server operation receipt.')
 
 
-async def audit_request(request, call_next):
+async def begin_audit(request):
+    """Begin the same redacted operation receipt for either HTTP factory."""
     path = request.url.path.removeprefix(request.scope.get('root_path', ''))
     operation = None
     if request.method in {'POST', 'PUT'}:
@@ -66,31 +67,22 @@ async def audit_request(request, call_next):
     elif request.method == 'DELETE' and path.startswith(('/api/publishment/', '/api/publishing/publication/')):
         operation = 'prune'
     if operation is None:
-        return await call_next(request)
+        return None
     scheme, _, token = request.headers.get('Authorization', '').partition(' ')
     if scheme.casefold() != 'bearer' or not token:
-        return await call_next(request)
+        return None
     try:
         user = await get_current_user(token)
         await authorize(user, 'publish', request.headers.get('X-PNBP-Notebook', 'default'))
         await notebook_record(request.headers.get('X-PNBP-Notebook', 'default'))
     except HTTPException:
-        return await call_next(request)
+        return None
     try:
-        event_id, operation_id = await _start(request, user, operation)
+        return await _start(request, user, operation)
     except Exception:
-        return JSONResponse({'detail': 'Operation logging is unavailable; no publication was attempted.'}, status_code=503)
-    try:
-        response = await call_next(request)
-    except BaseException:
-        await _finish(request, event_id, 500)
-        raise
-    await _finish(request, event_id, response.status_code)
-    response.headers['X-PNBP-Operation-ID'] = operation_id
-    return response
+        raise HTTPException(503, 'Operation logging is unavailable; no publication was attempted.') from None
 
 
-@router.get('/api/logs')
-async def list_logs(request: Request, limit: int = Query(100, ge=1, le=100), before: int = Query(0, ge=0), user=Depends(require_permission('logs'))):
+async def list_logs(request: Request, limit: int = 100, before: int = 0, user=None):
     record = await notebook_record(request.headers.get('X-PNBP-Notebook', 'default'))
     return await connections.get('default').execute_query_dict('SELECT id,operation_id,user_id,operation,outcome,status_code,started_at,finished_at FROM pnbp_operation_events WHERE notebook_id=? AND (?=0 OR id<?) ORDER BY id DESC LIMIT ?', [record['id'], before, before, limit])

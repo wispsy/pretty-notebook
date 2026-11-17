@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from api import auth_api
 from api.process_lock import ProcessLock
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 import install_assets
 import web_config
@@ -31,7 +31,7 @@ def test_account_removed_after_authentication_cannot_reset_password(client, root
     async def deleted_after_authentication():
         await auth_api.User.filter(id=cached.id).delete()
         return cached
-    client.app.dependency_overrides[auth_api.get_current_user] = deleted_after_authentication
+    client.app.authentication_overrides[auth_api.get_current_user] = deleted_after_authentication
     response = client.post('/api/users/me', json={'password_hash': 'replacement-test-password'})
     assert response.status_code == 401
     assert response.headers['www-authenticate'] == 'Bearer'

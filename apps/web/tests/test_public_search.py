@@ -2,7 +2,7 @@ from functools import partial
 
 import pytest
 from api import catalog, public_index
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 
 
