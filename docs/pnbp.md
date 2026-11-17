@@ -55,5 +55,5 @@ configuration. Initialize deliberately with `pnbp init PATH`; see the canonical
 - [Checked publishing](https://github.com/wispsy/pretty-notebook/blob/v0.12.0/docs/checked-publishing.md): dry-run plans, ETags, retries and explicit pruning.
 - [Web deployment](https://github.com/wispsy/pretty-notebook/blob/v0.12.0/docs/web.md): separate application, bootstrap, durable state and the supported local-host worker profile.
 
-The macOS URL handlers are [unsupported](https://github.com/wispsy/pretty-notebook/blob/v0.12.0/docs/pnano.md). The FastAPI app and its
+The macOS URL handlers are [unsupported](https://github.com/wispsy/pretty-notebook/blob/v0.12.0/docs/pnano.md). The repository web app and its
 optional dependencies are absent from the canonical wheel; `pnbp` is metadata only.

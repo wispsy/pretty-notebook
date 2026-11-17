@@ -1,3 +1,6 @@
+
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
 import json
 import re
 from html import escape
@@ -5,16 +8,12 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 import aiofiles
-import fastapi
-from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from web_config import SETTINGS_PATH
 from pretty_notebook.appearance import validate_appearance
 
 from .atomic_io import atomic_write_text
-from .permissions import require_permission
 
-router = fastapi.APIRouter()
 WEB_SETTINGS_PATH = SETTINGS_PATH
 STYLE_NAME = re.compile(r"[A-Za-z0-9_-]+\Z")
 
@@ -150,13 +149,6 @@ async def update_layout(
     return lout
 
 
-@router.post(
-    "/api/layout",
-    name="update_lout",
-    status_code=201,
-    response_model=PNBPWebLayout,
-    dependencies=[Depends(require_permission("site"))],
-)
 async def layout_post(lout_in: PNBPWebLayout, request: Request):
     """Post Layout"""
     try:

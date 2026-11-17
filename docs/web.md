@@ -6,7 +6,7 @@
 > the documented 0.11 checks. The released 0.9 contract remains
 > a single-worker deployment.
 
-The FastAPI application publishes HTML and images produced by `pnbp`, serves a
+The Expose API application publishes HTML and images produced by `pnbp`, serves a
 small public site, and stores contact-form messages in a local inbox. The web
 application is deployed from the repository; it is not included in the `pnbp`
 wheel.
@@ -38,14 +38,16 @@ and stopped-service upgrade bundles, or the optional [Linux container profile](c
 
 ## Install a reviewed checkout
 
-Use a dedicated service account and an explicitly reviewed 0.11
-commit. Set `PNBP_REVISION` to that full commit SHA. The released `v0.9.0`
+Use a dedicated service account and an explicitly reviewed current web
+commit. The immutable `v0.12.0` package release retains the previous web baseline;
+the repository now uses `expose-api==0.2.0` without FastAPI or Starlette in the
+production environment. See [framework migration](web-framework-migration.md). Set `PNBP_REVISION` to that full commit SHA. The released `v0.9.0`
 tag retains its historical single-worker contract.
 
 ```bash
 git clone https://github.com/wispsy/pretty-notebook.git pnbp
 cd pnbp
-: "${PNBP_REVISION:?Set a reviewed 0.11 commit SHA}"
+: "${PNBP_REVISION:?Set a reviewed current web commit SHA}"
 git checkout --detach "$PNBP_REVISION"
 
 python3.14 -m venv .venv
@@ -65,10 +67,15 @@ python3.14 -m venv .venv
 The lock is verified for Linux x86_64 on CPython 3.14. Other
 platforms are not part of the supported public-deployment profile.
 
-The separate storage locks qualify the unreleased Backpack Store snapshot
-facility by immutable source revision and archive hash. They install no web
+The separate storage locks qualify the published Backpack Store 0.2.0 snapshot
+facility by registry artifact hash. They install no web
 framework or ORM replacement. See [storage extraction](storage-extraction.md)
-for ownership, compatibility and stopped-service rollback.
+for ownership, compatibility and stopped-service rollback. The web runtime
+requires Python 3.14+. `PNBP_WEB_FRAMEWORK` may be omitted or set to `expose-api`;
+remove a temporary `fastapi` selection when upgrading from a migration checkout.
+Starlette is used only by the test transport, and is absent from production.
+Run `python scripts/check_web_runtime.py` in the production environment before
+installing test tools to qualify framework absence, publishing and restart.
 
 For dependency updates, regenerate from the repository root for the supported
 Python target:

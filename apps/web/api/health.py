@@ -1,6 +1,7 @@
 """Shared readiness service for the explicitly selected HTTP factories."""
 
-from fastapi import HTTPException
+from expose_api import HTTPException
+
 from tortoise import connections
 
 from . import layout_api

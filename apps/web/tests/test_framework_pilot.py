@@ -3,23 +3,21 @@
 from functools import partial
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from main import create_app
 
 
 def test_native_get_handlers_do_not_dispatch_the_baseline_router(web_storage, monkeypatch):
     app = create_app(db_url='sqlite://:memory:', framework='expose-api')
-    async def refused(scope, receive, send):
-        raise AssertionError('The baseline HTTP router handled a native pilot route')
     with TestClient(app) as client:
-        monkeypatch.setattr(app.baseline, 'middleware_stack', refused)
+        assert not hasattr(app, 'baseline')
         assert client.get('/healthz').json() == {'status': 'ok'}
         assert client.get('/api/search?q=absent').json()['total'] == 0
 
 
 @pytest.mark.parametrize('root', ['', '/notes'])
-def test_health_search_transcripts_and_restart_match(web_storage, tmp_path, root):
+def test_health_search_transcripts_survive_restart(web_storage, tmp_path, root):
     database = f'sqlite://{tmp_path / "pilot.sqlite3"}'
     cases = [
         ('GET', '/healthz'), ('GET', '/api/search?q=Common&tag=public&tag=Python'),
@@ -31,10 +29,10 @@ def test_health_search_transcripts_and_restart_match(web_storage, tmp_path, root
         ('GET', '/api/search/'), ('GET', '/api/absent'),
     ]
     transcripts = []
-    for framework in ('fastapi', 'expose-api'):
-        app = create_app(db_url=database, framework=framework, root_path=root)
+    for startup in range(2):
+        app = create_app(db_url=database, root_path=root)
         with TestClient(app) as client:
-            if framework == 'fastapi':
+            if startup == 0:
                 client.portal.call(partial(app.state.publications.publish, 'one',
                     '<p>#public #Python Common café text</p>', title='Common title'))
             transcript = []

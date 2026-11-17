@@ -48,6 +48,10 @@ PNBP_BOOTSTRAP_TOKEN=synthetic-container-bootstrap-32-bytes
         output = root / 'bundle'
         write_bundle(spec, output, profile='container')
         image = 'pretty-notebook:' + revision
+        run('docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'python', image,
+            '-c', "from importlib.util import find_spec; from importlib.metadata import version; "
+            "assert all(find_spec(name) is None for name in ('fastapi', 'starlette')); "
+            "assert version('expose-api') == '0.2.0'")
         compose = ['docker', 'compose', '--file', str(output / 'compose.json')]
         active_compose = compose
         # Ownership changes are confined to this disposable synthetic fixture.
