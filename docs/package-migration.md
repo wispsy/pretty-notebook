@@ -1,6 +1,6 @@
 # Package naming and upgrades
 
-The development checkout prepares 0.12.0 on Python 3.14+. See the
+Version 0.12.0 requires Python 3.14+. See the
 [dependency migration](dependency-migration.md) for the upstream package changes.
 
 Since 0.10, the canonical distribution is `pretty-notebook`, with the import
@@ -10,16 +10,16 @@ package `pretty_notebook`. The executable remains `pnbp`:
 from pretty_notebook import Notebook, Note
 ```
 
-The release version is `0.11.0`. Remove an old `pnbp` installation
+The release version is `0.12.0`. Remove an old `pnbp` installation
 before installing it:
 
 ```sh
 python -m pip uninstall pnbp
-python -m pip install pretty-notebook==0.11.0
+python -m pip install pretty-notebook==0.12.0
 ```
 
-The final `pnbp==0.11.0` is a metadata-only compatibility distribution
-that depends on `pretty-notebook==0.11.0`. It does not contain implementation
+The final `pnbp==0.12.0` is a metadata-only compatibility distribution
+that depends on `pretty-notebook==0.12.0`. It does not contain implementation
 modules or its own executable. The canonical package owns all imports and CLI
 files. New installations should request `pretty-notebook` directly.
 
@@ -28,7 +28,7 @@ that metadata-only package, upgrade both names together so dependency checks
 remain consistent:
 
 ```sh
-python -m pip install --upgrade pretty-notebook==0.11.0 pnbp==0.11.0
+python -m pip install --upgrade pretty-notebook==0.12.0 pnbp==0.12.0
 ```
 
 The uninstall-first instructions above remain required for pre-0.10 packages
