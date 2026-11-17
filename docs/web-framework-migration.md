@@ -83,3 +83,8 @@ Unexpected handler failures retain the baseline's value-free plaintext 500 body
 and media type. The native final boundary also retains configured security and
 no-store headers, plus the operation correlation receipt on these errors; the
 baseline could omit them when an exception escaped its HTTP middleware.
+
+The native request reader retains its finite 8 KiB / 128-field query profile and
+16 MiB body profile. Valid bounded search inputs fit that query budget. Wire
+refusals retain their selected 4xx status and public detail rather than entering
+the sanitized unexpected-failure boundary.

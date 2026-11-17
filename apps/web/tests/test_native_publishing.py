@@ -135,3 +135,18 @@ def test_canceled_native_request_closes_uploads_and_finalizes_receipt(web_storag
             events = (await client.get('/api/logs', headers={'Authorization': 'Bearer ' + token})).json
             assert events[0]['outcome'] == 'failed' and events[0]['status_code'] == 500
     asyncio.run(exercise())
+
+
+@pytest.mark.parametrize('web_framework', ['expose-api'], indirect=True)
+def test_native_wire_refusals_keep_their_http_status(web_storage):
+    from native_requests import BODY_LIMIT
+    async def exercise():
+        async with AsyncClient(create_app(db_url='sqlite://:memory:', framework='expose-api')) as client:
+            large = await client.post('/api/publishment', content=b'{}',
+                headers={'Content-Type': 'application/json', 'Content-Length': str(BODY_LIMIT + 1)})
+            assert large.status == 413 and large.reads == 0
+            assert isinstance(large.json['detail'], str)
+            assert large.headers['cache-control'] == 'no-store'
+            query = await client.get('/api/search?q=' + 'x' * 8193)
+            assert query.status == 400 and isinstance(query.json['detail'], str)
+    asyncio.run(exercise())

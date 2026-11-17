@@ -74,6 +74,9 @@ class ExposedApplication:
 
         @self.http_app.exception_handler(Exception)
         async def internal_error(request, error):
+            status, message = getattr(error, 'status', None), getattr(error, 'message', None)
+            if type(status) is int and 400 <= status < 500 and isinstance(message, str):
+                return JSONResponse({'detail': message}, status=status, headers=getattr(error, 'headers', ()))
             logging.getLogger(__name__).error('Unhandled web application error (%s).', type(error).__name__)
             return Response(b'Internal Server Error', status=500, media_type='text/plain; charset=utf-8')
 
