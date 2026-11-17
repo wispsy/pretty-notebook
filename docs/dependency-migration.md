@@ -23,3 +23,23 @@ request exception family; CLI errors omit private values.
 The web application retains its current FastAPI/Starlette implementation. Its
 dependency lock and deployment Python selection follow the root package's 3.14
 minimum; changing the HTTP client does not begin the web framework migration.
+
+## Markdown engine
+
+Parse MD 0.1 owns generic nodes, source spans, bounded parsing and versioned
+CommonMark/extended syntax. The former parser modules now forward to that
+published dependency. The notebook keeps its public imports and notebook-first
+RendererContext constructor, legacy component conversion and optional
+Python-Markdown backend. A compatibility Document preserves the default notebook
+renderer without copying the syntax engine.
+
+Notebook adapters retain graph/wiki resolution, public-only link selection,
+fragments, image routes, hidden commit tags, external-link attributes/icons,
+heading IDs and rendering metadata. Original Markdown and pending edits remain
+unchanged. Publication fingerprints include the installed engine version,
+dialect identity and runtime source digest alongside local adapter/policy code;
+old plans must be reviewed again after an implementation change.
+
+Rollback uses the complete previous qualified package revision and lock together,
+then prepares fresh publication plans. It does not rewrite stored Markdown or
+reuse plans produced by a different renderer implementation.

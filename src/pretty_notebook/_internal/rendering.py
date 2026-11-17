@@ -24,7 +24,7 @@ def backend_identity(notebook):
     backend = notebook.config.get('MARKDOWN_BACKEND', 'typed')
     directory = Path(markdown.__file__).parent
     files = [Path(__file__), *sorted(directory.glob('*.py'))]
-    identity = {'backend': backend, 'dialect': 'notebook-1'}
+    identity = {'backend': backend, 'dialect': 'notebook-1', 'engine': engine_identity()}
     if backend == 'python-markdown':
         from importlib.metadata import PackageNotFoundError, version
         try:
@@ -35,3 +35,15 @@ def backend_identity(notebook):
     import hashlib
     identity['implementation'] = hashlib.sha256(b''.join(file.name.encode() + b'\0' + file.read_bytes() for file in files)).hexdigest()
     return identity
+
+
+def engine_identity():
+    """Bind plans to the installed parser version, dialect and runtime sources."""
+    import hashlib
+    from importlib.metadata import version
+    import parse_md
+    directory = Path(parse_md.__file__).parent
+    sources = sorted(directory.glob('*.py'))
+    implementation = hashlib.sha256(b''.join(file.name.encode() + b'\0' + file.read_bytes() for file in sources)).hexdigest()
+    return {'distribution': 'parse-md', 'version': version('parse-md'),
+            'dialect': parse_md.EXTENDED.identity, 'implementation': implementation}

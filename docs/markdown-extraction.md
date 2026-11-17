@@ -1,5 +1,12 @@
 # Markdown extraction inventory
 
+The inventory below records the pre-extraction baseline. The development
+checkout now adopts published `parse-md==0.1.0` from
+[wispsy/parse_md](https://github.com/wispsy/parse_md). Generic parsing is shared;
+notebook policy remains in compatibility adapters. The selected Python floor is
+3.14+. See [dependency migration](dependency-migration.md) for implementation
+identity, source preservation and rollback.
+
 This inventory records [source revision `2bfc586cfce7e982f73cbbb0215c99260388f73c`](https://github.com/wispsy/pretty-notebook/tree/2bfc586cfce7e982f73cbbb0215c99260388f73c/src/pretty_notebook/markdown). It
 proposes boundaries for an independent generic package; it does not move code,
 select a package identity or add a dependency. The owning decision is
@@ -106,10 +113,11 @@ selection must explicitly review fixture inclusion and notices.
 
 ## Decision, migration and rollback
 
-MD-01 still selects distribution/import/repository, ownership, MIT-compatible
-provenance/notices, Python floor, public exports, dialect/extension API and
-renderer/context API. After selection, create the package-owned implementation
-issue and link PN-MD-EXTRACT-02. Publication remains a separate operation.
+MD-01 selected distribution `parse-md`, import `parse_md`, repository
+`wispsy/parse_md`, Python 3.14+, retained MIT/provenance and the separately
+attributed corpus. Version 0.1.0 is published with immutable built-in
+CommonMark/extended profiles and explicit rendering callbacks. Arbitrary parser
+plugins are deferred. The compatibility adoption follows the sequence below.
 
 1. Copy with provenance into the selected package, preserve the generic corpus
    and budgets, and qualify isolated wheel/source installs without notebook or
