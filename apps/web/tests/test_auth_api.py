@@ -5,7 +5,7 @@ from threading import Barrier
 import jwt
 import pytest
 from api import auth_api
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 
 

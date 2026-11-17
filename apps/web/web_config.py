@@ -44,10 +44,10 @@ def allowed_hosts() -> list[str]:
 
 
 def web_framework(value=None):
-    """Select a qualified migration factory before application construction."""
-    selected = config('PNBP_WEB_FRAMEWORK', default='fastapi') if value is None else value
-    if selected not in ('fastapi', 'expose-api'):
-        raise RuntimeError('PNBP_WEB_FRAMEWORK must be fastapi or expose-api.')
+    """Select the supported native runtime before application construction."""
+    selected = config('PNBP_WEB_FRAMEWORK', default='expose-api') if value is None else value
+    if selected != 'expose-api':
+        raise RuntimeError('PNBP_WEB_FRAMEWORK must be expose-api.')
     return selected
 
 

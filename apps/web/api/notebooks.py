@@ -1,18 +1,18 @@
 """Durable notebook owners and isolated publication namespaces."""
 
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 from pathlib import Path
 from uuid import uuid4
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from tortoise import connections
 from tortoise.transactions import in_transaction
 
 from .catalog import PublicationStore, RouteConflict
-from .permissions import require_permission
 
-router = APIRouter()
 OWNERSHIP_SCHEMA = (
     'CREATE TABLE pnbp_notebooks_next (slot TEXT PRIMARY KEY, id TEXT NOT NULL UNIQUE, owner_id INTEGER REFERENCES user(id) ON DELETE SET NULL)',
     "INSERT INTO pnbp_notebooks_next SELECT slot,id,(SELECT user_id FROM pnbp_roles WHERE role='owner' ORDER BY user_id LIMIT 1) FROM pnbp_notebooks",
@@ -91,7 +91,6 @@ async def image_directory(request):
     return images_directory(request.app.state.images_path, record['slot'])
 
 
-@router.post('/api/notebooks', status_code=201, dependencies=[Depends(require_permission('admin'))])
 async def create_notebook(data: NotebookInput, request: Request):
     if data.slug == 'default':
         raise HTTPException(409, 'The default notebook already exists.')
@@ -117,8 +116,7 @@ async def create_notebook(data: NotebookInput, request: Request):
     return {'slug': data.slug, 'id': notebook_id, 'owner_id': data.owner_id}
 
 
-@router.get('/api/notebooks')
-async def list_notebooks(user=Depends(require_permission('account'))):
+async def list_notebooks(user=None):
     connection = connections.get('default')
     if user.role == 'owner':
         return await connection.execute_query_dict('SELECT slot AS slug,id,owner_id FROM pnbp_notebooks ORDER BY slot LIMIT 100')

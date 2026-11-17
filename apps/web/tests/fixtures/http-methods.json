@@ -1,0 +1,756 @@
+{
+  "/healthz": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/": {
+    "HEAD": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/token": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/users": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/users/me": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/users/1/role": {
+    "HEAD": {
+      "status": 405,
+      "allow": "PUT",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "PUT",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/credentials": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/forms/contact/submissions": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/search": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/search/": {
+    "HEAD": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/api/not-found": {
+    "HEAD": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "PATCH": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "DELETE, PUT, POST, OPTIONS, PATCH, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/forms/contact": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/theme": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/appearance": {
+    "HEAD": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "POST",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/contact": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/n": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/n/search": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/missing": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static": {
+    "HEAD": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static/": {
+    "HEAD": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static/imgs": {
+    "HEAD": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static/imgs/": {
+    "HEAD": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static/custom/appearance.css": {
+    "HEAD": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/static/favicon/no.png": {
+    "HEAD": {
+      "status": 404,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": null,
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/docs": {
+    "HEAD": {
+      "status": 200,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/redoc": {
+    "HEAD": {
+      "status": 200,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  },
+  "/openapi.json": {
+    "HEAD": {
+      "status": 200,
+      "allow": null,
+      "location": null,
+      "body": ""
+    },
+    "OPTIONS": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "PATCH": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    "TRACE": {
+      "status": 405,
+      "allow": "HEAD, GET",
+      "location": null,
+      "body": "{\"detail\":\"Method Not Allowed\"}"
+    }
+  }
+}

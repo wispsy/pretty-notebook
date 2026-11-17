@@ -1,5 +1,8 @@
 """Explicit site permissions, notebook grants and revocable script credentials."""
 
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
@@ -7,13 +10,11 @@ import json
 import secrets
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from tortoise import connections
 
 from .auth_api import User, get_current_user, unauthorized
 
-router = APIRouter()
 SCOPES = frozenset({'account', 'admin', 'site', 'inbox', 'read', 'publish', 'logs'})
 NOTEBOOK_SCOPES = frozenset({'read', 'publish', 'logs'})
 ROLE_SCOPES = {
@@ -62,12 +63,6 @@ async def authorize(user, permission, notebook='default'):
     return user
 
 
-def require_permission(permission):
-    async def check(request: Request, user=Depends(get_current_user)):
-        return await authorize(user, permission, request.headers.get('X-PNBP-Notebook', 'default'))
-    return check
-
-
 async def authenticate_credential(token):
     rows = await connections.get('default').execute_query_dict(
         'SELECT * FROM pnbp_credentials WHERE digest=?', [hashlib.sha256(token.encode()).hexdigest()])
@@ -89,7 +84,6 @@ class RoleInput(BaseModel):
     role: Literal['owner', 'editor', 'reader', 'inbox']
 
 
-@router.put('/api/users/{user_id}/role', dependencies=[Depends(require_permission('admin'))])
 async def set_role(user_id: int, data: RoleInput, request: Request):
     async with request.app.state.storage_lock:
         connection = connections.get('default')
@@ -103,7 +97,6 @@ async def set_role(user_id: int, data: RoleInput, request: Request):
     return {'id': user_id, 'role': data.role}
 
 
-@router.put('/api/users/{user_id}/grants', dependencies=[Depends(require_permission('admin'))])
 async def set_grants(user_id: int, data: GrantInput, request: Request):
     if not await User.filter(id=user_id).exists():
         raise HTTPException(404, 'Account not found.')
@@ -122,8 +115,7 @@ class CredentialInput(BaseModel):
     lifetime_days: int = Field(default=30, ge=1, le=90)
 
 
-@router.post('/api/credentials', status_code=201)
-async def create_credential(data: CredentialInput, user=Depends(require_permission('account'))):
+async def create_credential(data: CredentialInput, user=None):
     for permission in data.scopes:
         await authorize(user, permission, data.notebook)
     token = 'pnbp_' + secrets.token_urlsafe(32)
@@ -135,12 +127,10 @@ async def create_credential(data: CredentialInput, user=Depends(require_permissi
     return {'access_token': token, 'token_type': 'bearer', 'expires_at': expires}
 
 
-@router.get('/api/credentials')
-async def list_credentials(user=Depends(require_permission('account'))):
+async def list_credentials(user=None):
     return await connections.get('default').execute_query_dict(
         'SELECT id,scopes,notebook,expires_at FROM pnbp_credentials WHERE user_id=? ORDER BY id LIMIT 100', [user.id])
 
 
-@router.delete('/api/credentials/{credential_id}', status_code=204)
-async def revoke_credential(credential_id: int, user=Depends(require_permission('account'))):
+async def revoke_credential(credential_id: int, user=None):
     await connections.get('default').execute_query('DELETE FROM pnbp_credentials WHERE id=? AND user_id=?', [credential_id, user.id])

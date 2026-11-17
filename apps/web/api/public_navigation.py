@@ -1,10 +1,11 @@
 """Navigation derived exclusively from the current public-index snapshot."""
 
+from expose_api import HTTPException
+
 import asyncio
 import posixpath
 from urllib.parse import quote, urlencode, urlsplit
 
-from fastapi import HTTPException
 from pretty_notebook._internal.routes import SEGMENT, validate_prefix, validate_route
 
 from .public_index import IndexCapacityError
