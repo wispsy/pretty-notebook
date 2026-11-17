@@ -15,7 +15,7 @@ authors = [
     { name = "prettynb" },
 ]
 maintainers = [
-    { name = "Outside Labs" },
+    { name = "wispsy" },
 ]
 
 keywords = [
