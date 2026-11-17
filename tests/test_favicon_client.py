@@ -1,7 +1,7 @@
 """The favicon client sends checked, bounded requests and reports CLI errors."""
 
 import pytest
-import requests
+from pretty_notebook._internal import http
 from cli_runner import CliRunner
 
 from pretty_notebook import Notebook
@@ -32,7 +32,7 @@ def test_favicon_client_uses_configured_prefix_auth_timeout_and_png_file(noteboo
         calls.append((url, kwargs))
         return Response()
 
-    monkeypatch.setattr("pnbp._publishing.requests.post", post)
+    monkeypatch.setattr("pnbp._publishing.http.post", post)
     assert notebook.post_favicon(image).json()["url"] == "/notes/static/favicon/version.png"
     url, kwargs = calls[0]
     assert url == "https://example.com/notes/api/favicon"
@@ -52,7 +52,7 @@ def test_invalid_client_file_never_sends_request(notebook, tmp_path, monkeypatch
     def unexpected(*args, **kwargs):
         pytest.fail("Invalid file should not be uploaded")
 
-    monkeypatch.setattr("pnbp._publishing.requests.post", unexpected)
+    monkeypatch.setattr("pnbp._publishing.http.post", unexpected)
     with pytest.raises(ValueError, match=message):
         notebook.post_favicon(image)
 
@@ -63,10 +63,10 @@ def test_client_propagates_rejected_upload(notebook, tmp_path, monkeypatch):
 
     class Rejected(Response):
         def raise_for_status(self):
-            raise requests.HTTPError("Rejected upload")
+            raise http.HTTPError("Rejected upload")
 
-    monkeypatch.setattr("pnbp._publishing.requests.post", lambda *args, **kwargs: Rejected())
-    with pytest.raises(requests.HTTPError):
+    monkeypatch.setattr("pnbp._publishing.http.post", lambda *args, **kwargs: Rejected())
+    with pytest.raises(http.HTTPError):
         notebook.post_favicon(image)
 
 
@@ -81,7 +81,7 @@ def test_favicon_cli_reports_new_url_and_optional_local_server(notebook, tmp_pat
         calls.append(url)
         return Response()
 
-    monkeypatch.setattr("pnbp._publishing.requests.post", post)
+    monkeypatch.setattr("pnbp._publishing.http.post", post)
     result = CliRunner().invoke(cli, ["favicon", str(image)] + (["--local"] if local else []))
     assert result.exit_code == 0, result.output
     assert result.output.strip() == "/notes/static/favicon/version.png"
@@ -95,9 +95,9 @@ def test_favicon_cli_reports_failure_without_credentials(notebook, tmp_path, mon
     monkeypatch.setattr("pnbp.cli._open_notebook", lambda context: notebook)
 
     def failed(*args, **kwargs):
-        raise requests.ConnectionError("private-site-token")
+        raise http.ConnectionError("private-site-token")
 
-    monkeypatch.setattr("pnbp._publishing.requests.post", failed)
+    monkeypatch.setattr("pnbp._publishing.http.post", failed)
     result = CliRunner().invoke(cli, ["favicon", str(image)])
     assert result.exit_code != 0
     assert "Could not update the site favicon" in result.output

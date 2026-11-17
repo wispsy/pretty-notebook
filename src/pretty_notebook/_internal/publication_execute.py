@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import requests
+from pretty_notebook._internal import http
 
 from pretty_notebook._internal import publication_plan as plans, publication_state as state
 
@@ -85,7 +85,7 @@ def execute(notebook, plan):
     for image in plan.images:
         etag = image.expected_etag
         if image.action != "unchanged":
-            response = notebook._api_request(requests.put, "/api/publishing/image", headers=_headers(notebook, image),
+            response = notebook._api_request(http.put, "/api/publishing/image", headers=_headers(notebook, image),
                 files={"file": (image.name, image.content, image.content_type)})
             receipt = response.json()
             expected = f'"sha256-{image.source_hash}"'
@@ -100,7 +100,7 @@ def execute(notebook, plan):
             continue
         etag = page.expected_etag
         if page.action != "unchanged":
-            response = notebook._api_request(requests.put, "/api/publishing/publication", headers=_headers(notebook, page),
+            response = notebook._api_request(http.put, "/api/publishing/publication", headers=_headers(notebook, page),
                 json={"name": page.name[:-5], "content": page.content, "title": page.title, "aliases": list(page.aliases),
                       "source_hash": page.source_hash, "rendered_hash": page.rendered_hash, "renderer_fingerprint": page.renderer_fingerprint})
             receipt = response.json()
@@ -115,7 +115,7 @@ def execute(notebook, plan):
         _validate_local(notebook, plan)
     for page in plan.pages:
         if page.action == "delete":
-            response = notebook._api_request(requests.delete, "/api/publishing/publication/" + page.name[:-5], headers=_headers(notebook, page))
+            response = notebook._api_request(http.delete, "/api/publishing/publication/" + page.name[:-5], headers=_headers(notebook, page))
             receipt = response.json()
             if not isinstance(receipt, dict) or receipt.get("name") != page.name[:-5] or receipt.get("deleted") is not True:
                 raise ValueError("Invalid checked delete receipt; refresh the remote inventory before retrying.")

@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID
 
-import requests
+from pretty_notebook._internal import http
 
 from pretty_notebook._internal import rendering as _rendering, routes as _routes
 
@@ -44,8 +44,8 @@ def negotiate(notebook, mode="auto"):
     if mode == "legacy":
         return False
     try:
-        response = notebook._api_request(requests.get, "/api/publishing/capabilities", headers=notebook.get_headers())
-    except requests.HTTPError as error:
+        response = notebook._api_request(http.get, "/api/publishing/capabilities", headers=notebook.get_headers())
+    except http.HTTPError as error:
         if mode == "auto" and error.response is not None and error.response.status_code == 404:
             return False
         raise
@@ -153,7 +153,7 @@ def _uuid(value):
 
 
 def read_inventory(notebook):
-    data = notebook._api_request(requests.get, "/api/publishing/inventory", headers=notebook.get_headers()).json()
+    data = notebook._api_request(http.get, "/api/publishing/inventory", headers=notebook.get_headers()).json()
     if not isinstance(data, dict) or not _uuid(data.get("notebook_id")):
         raise ValueError("Invalid checked publishing inventory.")
     result = {}
@@ -204,7 +204,7 @@ def _route_conflicts(notebook, entries):
     conflicts = {}
     for start in range(0, len(entries), 200):
         claims = [{"name": entry["route"][1:], "aliases": entry["aliases"]} for entry in entries[start:start + 200]]
-        result = notebook._api_request(requests.post, "/api/routes/preview", json=claims, headers=notebook.get_headers()).json()
+        result = notebook._api_request(http.post, "/api/routes/preview", json=claims, headers=notebook.get_headers()).json()
         if not isinstance(result, dict) or type(result.get("valid")) is not bool or not isinstance(result.get("conflicts"), list):
             raise ValueError("Invalid read-only route preview.")
         names = {claim["name"] for claim in claims}

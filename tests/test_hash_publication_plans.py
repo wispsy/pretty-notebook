@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
-import requests
+from pretty_notebook._internal import http
 
 from pretty_notebook import Notebook
 from pretty_notebook._internal import publication_plan as plans
@@ -22,7 +22,7 @@ class Response:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            raise requests.HTTPError(f"HTTP {self.status_code}", response=self)
+            raise http.HTTPError(f"HTTP {self.status_code}", response=self)
 
 
 class Remote:
@@ -32,8 +32,8 @@ class Remote:
         self.status = 200
         self.pages, self.images, self.calls = [], [], []
         self.routes = {"valid": True, "conflicts": []}
-        monkeypatch.setattr(requests, "get", self.get)
-        monkeypatch.setattr(requests, "post", self.post)
+        monkeypatch.setattr(http, "get", self.get)
+        monkeypatch.setattr(http, "post", self.post)
 
     def get(self, url, **kwargs):
         self.calls.append(("get", url, kwargs))
@@ -160,11 +160,11 @@ def test_only_a_capabilities_404_allows_automatic_legacy_fallback(local, remote)
     remote.status = 404
     assert local.prepare_publication(mode="auto") is None
     assert local.publication_plan()["mode"] == "legacy-0.9"
-    with pytest.raises(requests.HTTPError):
+    with pytest.raises(http.HTTPError):
         local.prepare_publication(mode="checked")
     for status in (403, 500):
         remote.status = status
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(http.HTTPError):
             local.publication_plan()
     remote.calls.clear()
     assert local.prepare_publication(mode="legacy") is None and remote.calls == []

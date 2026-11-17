@@ -65,7 +65,7 @@ def test_remote_publication_rejects_duplicate_slug_before_request(
 	def unexpected_request(*args, **kwargs):
 		raise AssertionError("publication preflight must run before HTTP requests")
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.get", unexpected_request)
+	monkeypatch.setattr("pnbp.models.notebook.http.get", unexpected_request)
 
 	with pytest.raises(ValueError, match="duplicate publication slug"):
 		notebook.post_commits_to_web_api(stage_only=True)
@@ -102,7 +102,7 @@ def test_remote_publication_rejects_escaping_image_before_request(
 	def unexpected_request(*args, **kwargs):
 		raise AssertionError("image preflight must run before HTTP requests")
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.get", unexpected_request)
+	monkeypatch.setattr("pnbp.models.notebook.http.get", unexpected_request)
 
 	with pytest.raises(ValueError, match="image path"):
 		notebook.post_commits_to_web_api(stage_only=True)
@@ -123,7 +123,7 @@ def test_image_upload_uses_explicit_multipart_metadata_and_closes_file(
 	uploaded_files = []
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		lambda *args, **kwargs: FakeResponse(),
 	)
 
@@ -137,7 +137,7 @@ def test_image_upload_uses_explicit_multipart_metadata_and_closes_file(
 			uploaded_files.append(file_object)
 		return FakeResponse()
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", record_post)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", record_post)
 
 	notebook.post_commits_to_web_api(mode="legacy")
 

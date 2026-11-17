@@ -4,8 +4,8 @@ The Markdown files in `docs/` are the canonical documentation. Sphinx and MyST
 render those same files; generated HTML and doctrees stay in the ignored
 `docs/_build/` directory. The development roadmap remains in GitHub Markdown.
 
-The pinned build tools require Python 3.12 or newer. This documentation-only
-requirement does not change the package's Python 3.11 runtime support. From a
+The development package and its pinned documentation build require Python 3.14
+or newer. From a
 fresh checkout at the repository root:
 
 ```bash

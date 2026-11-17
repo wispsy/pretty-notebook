@@ -3,7 +3,7 @@
 import getpass
 import re
 from pathlib import Path
-import requests
+from pretty_notebook._internal import http
 from pretty_notebook.helpers import _convert_datetime
 from pretty_notebook.models.components import Link
 from pretty_notebook.settings import save_api_token
@@ -16,7 +16,7 @@ def _remote_route_preview(notebook):
 	claims = [{"name": entry["route"][1:], "aliases": entry["aliases"]} for entry in notebook.publication_routes()["routes"]]
 	if len(claims) > 200:
 		raise ValueError("Route migration preview is limited to 200 publications; split the migration before publishing.")
-	response = notebook._api_request(requests.post, "/api/routes/preview", json=claims, headers=notebook.get_headers())
+	response = notebook._api_request(http.post, "/api/routes/preview", json=claims, headers=notebook.get_headers())
 	preview = response.json()
 	if not isinstance(preview, dict) or preview.get("valid") is not True:
 		raise ValueError("Remote route preview found collisions; inspect /api/routes/preview before publishing.")
@@ -113,7 +113,7 @@ def refresh_token(notebook):
 		'accept': 'application/json',
 		'Content-Type': 'application/x-www-form-urlencoded',
 	}
-	r = requests.post(
+	r = http.post(
 		f'{notebook.API_BASE}/api/token',
 		data={'username': u, 'password': p},
 		headers=h,
@@ -151,7 +151,7 @@ def get_authed_user(notebook):
 	""" request method to get the authenticated user's username
 	"""
 	h = notebook.get_headers()
-	r = notebook._api_request(requests.get, '/api/users/me', headers=h)
+	r = notebook._api_request(http.get, '/api/users/me', headers=h)
 	print(r)
 	print(r.json())
 	return r
@@ -161,7 +161,7 @@ def get_api_home(notebook):
 	""" request method to /api/ (testing auth)
 	"""
 	h = notebook.get_headers()
-	r = notebook._api_request(requests.get, '/api', headers=h)
+	r = notebook._api_request(http.get, '/api', headers=h)
 	print(r.text)
 	print(r.json())
 	return r
@@ -174,7 +174,7 @@ def get_pub_commits(notebook)->dict:
 		against current publishments.
 	"""
 	h = notebook.get_headers()
-	r = notebook._api_request(requests.get, '/api/publishments', headers=h)
+	r = notebook._api_request(http.get, '/api/publishments', headers=h)
 	pub_data = r.json()
 
 	nameMtime = {}
@@ -192,7 +192,7 @@ def get_img_commits(notebook)->dict:
 		against current imgs.
 	"""
 	h = notebook.get_headers()
-	r = notebook._api_request(requests.get, '/api/images', headers=h)
+	r = notebook._api_request(http.get, '/api/images', headers=h)
 	img_data = r.json()
 
 	nameMtime = {}
@@ -210,7 +210,7 @@ def delete_unlisted_post(notebook, rname):
 	"""
 	h = notebook.get_headers()
 	r = notebook._api_request(
-		requests.delete,
+		http.delete,
 		f'/api/publishment/{rname}',
 		headers=h,
 	)
@@ -281,7 +281,7 @@ def _legacy_post_commits(
 		if to_post:
 			html = notebook.convert_to_html(note=n)
 			r = notebook._api_request(
-				requests.post,
+				http.post,
 				'/api/publishment',
 				json={
 					"name": route.route[1:], "content": html,
@@ -301,7 +301,7 @@ def _legacy_post_commits(
 				path, content_type = publication_images[img]
 				with path.open('rb') as image_file:
 					r = notebook._api_request(
-						requests.post,
+						http.post,
 						'/api/image',
 						files={"file": (path.name, image_file, content_type)},
 						headers=h,
@@ -362,7 +362,7 @@ def web_settings_post(notebook):
 			del _config[k]
 
 	r = notebook._api_request(
-		requests.post,
+		http.post,
 		'/api/layout',
 		json=_config,
 		headers=h,
@@ -381,7 +381,7 @@ def post_favicon(notebook, path):
 		content = source.read(1024 * 1024 + 1)
 	if len(content) > 1024 * 1024:
 		raise ValueError("Favicon exceeds the 1 MiB limit.")
-	return notebook._api_request(requests.post, "/api/favicon",
+	return notebook._api_request(http.post, "/api/favicon",
 		files={"file": (path.name, content, "image/png")}, headers=notebook.get_headers())
 
 
@@ -413,7 +413,7 @@ def create_api_user(notebook, username='', bootstrap_token=None):
 			bootstrap_token = getpass.getpass("bootstrap token: ")
 		if bootstrap_token:
 			h['X-PNBP-Bootstrap-Token'] = bootstrap_token
-	r = requests.post(
+	r = http.post(
 		f'{notebook.API_BASE}/api/users',
 		json=u,
 		headers=h,
@@ -438,7 +438,7 @@ def reset_api_password(notebook):
 
 	p = {"password_hash": p_1}
 	h = notebook.get_headers()
-	r = requests.post(
+	r = http.post(
 		f'{notebook.API_BASE}/api/users/me',
 		json=p,
 		headers=h,

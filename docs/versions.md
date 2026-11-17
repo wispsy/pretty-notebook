@@ -1,5 +1,8 @@
 # Versions and support
 
+The development checkout prepares 0.12.0 on Python 3.14+. See the
+[dependency migration](dependency-migration.md) for the upstream package changes.
+
 The current release is `pretty-notebook==0.11.0`, supporting the Python library
 and CLI on Python 3.11 or newer. `pretty_notebook` is the canonical import;
 compatible `pnbp` imports and the CLI remain supported. The final `pnbp==0.11.0`
@@ -23,8 +26,8 @@ for the current contract. Browser sessions, private-reader access, share links, 
 bidirectional synchronization, browser editing, installed-wheel web packaging,
 and distributed or multi-host storage are deferred. macOS protocol handlers remain unsupported.
 
-Sphinx/MyST build tools are documentation-only and require Python 3.12 or newer;
-CI uses Python 3.14. This does not alter the library's Python 3.11 support.
+Sphinx/MyST build tools remain documentation-only. The development checkout and
+CI use Python 3.14; historical release support is recorded above.
 See [building the documentation](building.md) for a clean local build.
 
 The Read the Docs configuration is prepared, but hosted activation, a custom

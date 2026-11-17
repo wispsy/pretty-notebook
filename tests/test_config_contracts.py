@@ -105,7 +105,7 @@ def test_refresh_token_redacts_token_output(monkeypatch, tmp_path, capsys):
 
 	monkeypatch.setattr("builtins.input", lambda prompt="": "ella")
 	monkeypatch.setattr("getpass.getpass", lambda prompt="": "password")
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", post)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", post)
 
 	nb.refresh_token()
 	output = capsys.readouterr().out
@@ -149,7 +149,7 @@ def test_initial_user_creation_sends_bootstrap_secret_without_bearer_none(
 		captured.update({"url": url, **kwargs})
 		return Response()
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", post)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", post)
 
 	nb.create_api_user(username="ella", bootstrap_token="bootstrap-secret")
 

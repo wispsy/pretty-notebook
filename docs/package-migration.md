@@ -1,5 +1,8 @@
 # Package naming and upgrades
 
+The development checkout prepares 0.12.0 on Python 3.14+. See the
+[dependency migration](dependency-migration.md) for the upstream package changes.
+
 Since 0.10, the canonical distribution is `pretty-notebook`, with the import
 package `pretty_notebook`. The executable remains `pnbp`:
 

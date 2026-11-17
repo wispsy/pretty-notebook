@@ -1,5 +1,8 @@
 # Pretty Notebook package
 
+The development checkout prepares 0.12.0 on Python 3.14+. See the
+[dependency migration](dependency-migration.md) for the upstream package changes.
+
 Pretty Notebook is a Python library and command-line interface for interconnected
 Markdown notebooks. A notebook is an existing directory of Markdown files;
 a note is one source file. Wiki links, tags, code blocks and URLs have explicit

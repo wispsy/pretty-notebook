@@ -1,5 +1,8 @@
 # Pretty-Notebook
 
+The development checkout prepares 0.12.0 on Python 3.14+. See the
+[dependency migration](docs/dependency-migration.md) for the upstream package changes.
+
 A Python toolkit for interconnected Markdown notebooks. The repository also
 contains a FastAPI publisher with a constrained public-deployment profile.
 

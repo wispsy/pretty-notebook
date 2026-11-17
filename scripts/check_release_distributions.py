@@ -17,7 +17,7 @@ def check_distributions(directory=Path("dist")):
             metadata = BytesParser().parsebytes(wheel.read(metadata_path))
             assert metadata["Name"].replace("_", "-") == name
             assert metadata["Version"] == version
-            assert metadata["Requires-Python"] == ">=3.11"
+            assert metadata["Requires-Python"] == ">=3.14"
             assert metadata["License-Expression"] == "MIT"
             if name == "pnbp":
                 assert metadata.get_all("Requires-Dist") == [f"pretty-notebook=={version}"]

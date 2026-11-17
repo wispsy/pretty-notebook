@@ -135,11 +135,11 @@ def test_search_and_status_json_are_quiet_bounded_and_redacted(notes, monkeypatc
 
 
 def test_legacy_publication_json_reads_only_and_reports_truncation(notes, monkeypatch):
-	import requests
+	from pretty_notebook._internal import http
 	monkeypatch.setenv("API_BASE", "https://publish.example")
 	def legacy_capabilities(self, method, path, **kwargs):
-		assert method is requests.get and path == "/api/publishing/capabilities"
-		response = requests.Response()
+		assert method is http.get and path == "/api/publishing/capabilities"
+		response = http.Response()
 		response.status_code = 404
 		response.raise_for_status()
 	monkeypatch.setattr(Notebook, "_api_request", legacy_capabilities)
@@ -155,8 +155,8 @@ def test_legacy_publication_json_reads_only_and_reports_truncation(notes, monkey
 	monkeypatch.setattr(Notebook, "get_img_commits", images)
 	def unexpected_write(*args, **kwargs):
 		raise AssertionError("Dry-run must not write")
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", unexpected_write)
-	monkeypatch.setattr("pnbp.models.notebook.requests.delete", unexpected_write)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", unexpected_write)
+	monkeypatch.setattr("pnbp.models.notebook.http.delete", unexpected_write)
 	before = (notes / "example.md").read_bytes()
 	result = CliRunner().invoke(cli, ["commit-stage", "--json", "--limit", "1"])
 	assert result.exit_code == 0, result.output

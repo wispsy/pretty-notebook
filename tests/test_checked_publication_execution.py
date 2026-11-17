@@ -5,7 +5,7 @@ from stat import S_IMODE
 from uuid import uuid4
 
 import pytest
-import requests
+from pretty_notebook._internal import http
 from cli_runner import CliRunner
 
 from pretty_notebook import Notebook
@@ -24,7 +24,7 @@ class Response:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            raise requests.HTTPError(f"HTTP {self.status_code}", response=self)
+            raise http.HTTPError(f"HTTP {self.status_code}", response=self)
 
 
 class CheckedRemote:
@@ -34,7 +34,7 @@ class CheckedRemote:
         self.before_put = None
         self.counter = 0
         for name in ("get", "post", "put", "delete"):
-            monkeypatch.setattr(requests, name, getattr(self, name))
+            monkeypatch.setattr(http, name, getattr(self, name))
 
     def get(self, url, **kwargs):
         if url.endswith("/capabilities"):
@@ -89,7 +89,7 @@ class CheckedRemote:
         record = self.seed(name, data)
         if name == self.lose_name:
             self.lose_name = None
-            raise requests.ConnectionError("response lost after successful commit")
+            raise http.ConnectionError("response lost after successful commit")
         return Response({"name": data["name"], "revision": record["revision"], "etag": record["etag"],
                          "rendered_hash": record["rendered_hash"]}, headers={"ETag": record["etag"]})
 
@@ -165,7 +165,7 @@ def test_stale_remote_after_planning_and_during_put_cannot_overwrite(local, remo
     assert len(remote.writes) == before
     reviewed = local.prepare_publication(accept_remote=True)
     remote.before_put = lambda: remote.seed("note.html")
-    with pytest.raises(requests.HTTPError, match="412"):
+    with pytest.raises(http.HTTPError, match="412"):
         local.execute_publication(reviewed)
 
 
@@ -187,7 +187,7 @@ def test_partial_success_is_checkpointed_and_failure_stops_before_prune(local, r
     (Path(local.NOTE_PATH) / "second.md").write_text("#public\nSecond")
     remote.seed("stale.html")
     remote.fail_name = "second.html"
-    with pytest.raises(requests.HTTPError, match="500"):
+    with pytest.raises(http.HTTPError, match="500"):
         local.post_commits_to_web_api(prune=True)
     saved = json.loads(receipt_path(local).read_text())["targets"][local.API_BASE]
     assert set(saved["pages"]) == {"note.html"}
@@ -203,7 +203,7 @@ def test_partial_success_is_checkpointed_and_failure_stops_before_prune(local, r
 
 def test_lost_success_response_is_recovered_by_authoritative_matching_inventory(local, remote):
     remote.lose_name = "note.html"
-    with pytest.raises(requests.ConnectionError):
+    with pytest.raises(http.ConnectionError):
         local.post_commits_to_web_api()
     assert not receipt_path(local).exists()
     plan = local.prepare_publication()
@@ -244,7 +244,7 @@ def test_image_failure_stops_before_page_uploads_and_prune(local, remote):
     (Path(local.IMG_PATH) / "photo.png").write_bytes(b"\x89PNG\r\n\x1a\nFirst")
     remote.seed("stale.html")
     remote.fail_name = "photo.png"
-    with pytest.raises(requests.HTTPError):
+    with pytest.raises(http.HTTPError):
         local.post_commits_to_web_api(prune=True)
     assert all(kind == "image" for kind, _, _ in remote.writes)
     assert not receipt_path(local).exists()
@@ -293,13 +293,13 @@ def test_forged_prune_action_cannot_delete_a_current_local_publication(local, re
 
 def test_invalid_success_receipt_stops_before_prune_and_inventory_recovers(local, remote, monkeypatch):
     remote.seed("stale.html")
-    original = requests.put
+    original = http.put
     def invalid_receipt(*args, **kwargs):
         response = original(*args, **kwargs)
         response.headers["ETag"] = '"unexpected"'
         return response
     with monkeypatch.context() as patch:
-        patch.setattr(requests, "put", invalid_receipt)
+        patch.setattr(http, "put", invalid_receipt)
         with pytest.raises(ValueError, match="Invalid checked publication receipt"):
             local.post_commits_to_web_api(prune=True)
     assert "stale.html" in remote.pages and not receipt_path(local).exists()

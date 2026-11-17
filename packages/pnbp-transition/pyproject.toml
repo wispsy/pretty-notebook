@@ -4,19 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pnbp"
-version = "0.11.0"
+version = "0.12.0"
 description = "Compatibility distribution that installs Pretty Notebook."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "prettynb" }]
 maintainers = [{ name = "wispsy" }]
-dependencies = ["pretty-notebook==0.11.0"]
+dependencies = ["pretty-notebook==0.12.0"]
 
 [project.urls]
 Repository = "https://github.com/wispsy/pretty-notebook"
-Documentation = "https://github.com/wispsy/pretty-notebook/tree/v0.11.0/docs"
+Documentation = "https://github.com/wispsy/pretty-notebook/tree/v0.12.0/docs"
 Issues = "https://github.com/wispsy/pretty-notebook/issues"
 
 [tool.setuptools]
