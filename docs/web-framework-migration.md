@@ -35,7 +35,15 @@ ORM/model translation is provided.
 The baseline also serves `/openapi.json`, `/docs`, `/docs/oauth2-redirect` and
 `/redoc`, plus `/static/imgs` before the general `/static` mount. Middleware
 retains trusted hosts, application security/CSP/cache headers and operation
-auditing. The default factory remains the baseline during this inventory stage.
+auditing. The default factory remains the baseline during the pilot. The Expose API
+selection now serves GET `/healthz` and GET `/api/search` through native explicit
+handlers, with shared readiness/search services and application-owned Pydantic
+query validation. Validation locations, missing-input details, JSON bytes,
+security/cache headers and root prefixes retain the baseline protocol. Other
+methods and unported groups explicitly delegate to the recorded baseline;
+native automatic HEAD/OPTIONS behavior is not silently selected for these URLs.
+Transcript checks compare both factories over one persistent database across
+restart and prove native GET requests bypass the baseline HTTP router.
 
 The unchanged web protocol fixtures run against both factories, including
 authentication, headers/cookies, invalid input, files, uploads, transaction

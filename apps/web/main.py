@@ -10,7 +10,7 @@ from api import forms as forms_api
 from api import search_api, public_index, permissions, notebooks, operation_logs
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.staticfiles import StaticFiles
-from tortoise import connections
+from api.health import health_status
 from tortoise.contrib.fastapi import RegisterTortoise, tortoise_exception_handlers
 from views import forms, home
 from views import search as search_view
@@ -117,15 +117,7 @@ def create_fastapi_app(
 
     @app.get("/healthz", include_in_schema=False)
     async def healthz():
-        try:
-            await connections.get("default").execute_query("SELECT 1")
-            await layout_api.get_layout_content()
-        except Exception as exc:
-            raise fastapi.HTTPException(
-                status_code=503,
-                detail="Persistent storage is unavailable.",
-            ) from exc
-        return {"status": "ok"}
+        return await health_status()
 
     app.include_router(publish_api.router)
     app.include_router(publishing_api.router)
@@ -164,7 +156,7 @@ def create_app(
     if selected == 'fastapi':
         return baseline
     from expose_web import ExposedApplication
-    return ExposedApplication(baseline)
+    return ExposedApplication(baseline, allowed_hosts=allowed_hosts or web_config.allowed_hosts())
 
 
 api = create_app()
