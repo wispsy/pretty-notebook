@@ -127,7 +127,7 @@ def missing_input(*path):
 
 async def model_input(request, schema):
     body = (await request.resolve(JSONBody)).value
-    if body is MISSING:
+    if body is MISSING or body is None:
         missing_input()
     try:
         return schema.validate_python(body, from_attributes=True)

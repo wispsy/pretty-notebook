@@ -40,7 +40,8 @@ def test_wire_and_semantic_validation_transcripts_match(web_storage, tmp_path, r
     database = f'sqlite://{tmp_path / "wire.sqlite3"}'
     cases = [
         ('/api/publishment', {'content': '{', 'headers': {'Content-Type': 'application/json'}}),
-        ('/api/publishment', {}), ('/api/publishment', {'json': []}),
+        ('/api/publishment', {}), ('/api/publishment', {'content': 'null', 'headers': {'Content-Type': 'application/json'}}),
+        ('/api/publishment', {'json': []}),
         ('/api/publishment', {'json': {}}), ('/api/image', {}),
         ('/api/image', {'data': {'file': 'oops'}}),
         ('/api/image', {'content': b'invalid', 'headers': {'Content-Type': 'multipart/form-data; boundary=missing'}}),
