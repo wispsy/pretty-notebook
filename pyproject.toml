@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77.0.3"]
+requires = ["setuptools>=84.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -29,7 +29,7 @@ dependencies = [
     "expose-interface>=0.1.0,<0.2",
     "requ>=0.2.0,<0.3",
     "parse-md>=0.1.0,<0.2",
-    "rich>=10.6",
+    "escape-colors[markdown]>=0.3.0,<0.4",
 ]
 
 [project.optional-dependencies]

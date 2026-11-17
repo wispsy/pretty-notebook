@@ -1,7 +1,7 @@
 """The notebook owns application policy while generic syntax stays shared."""
 
 import importlib.metadata
-from dataclasses import replace
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 
 import parse_md
@@ -72,3 +72,10 @@ def test_parser_version_and_installed_sources_are_in_publication_fingerprints(tm
     first = publication_plan.renderer_fingerprint(nb)
     (module/'__init__.py').write_text('second')
     assert publication_plan.renderer_fingerprint(nb) != first
+
+
+@pytest.mark.parametrize('document', [Document(Paragraph('builder')), parse_notebook('parsed **source**')])
+def test_compatibility_documents_reject_inherited_and_new_attribute_assignment(document):
+    for name, value in [('children', ()), ('extra_state', 'mutable')]:
+        with pytest.raises(FrozenInstanceError):
+            setattr(document, name, value)
