@@ -1,57 +1,100 @@
-"""Renderer interfaces and the existing Python-Markdown builder backend."""
+"""Notebook URL, publication and legacy-backend policy around Parse MD."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass, replace
-from typing import Literal, Protocol
+from copy import copy
+from dataclasses import dataclass, field, fields, replace
+from html import escape
 import re
+from urllib.parse import quote
 
-from .nodes import NotebookLink, Node, Text, safe_url
+from parse_md.renderers import (
+    DiagramInfo, HeadingInfo, RenderedMarkdown, Renderer,
+    RendererContext as _Context, TypedRenderer as _TypedRenderer,
+)
+from .nodes import ImageEmbed, Link, Node, NotebookLink, Text, safe_url
 
 
-@dataclass(frozen=True)
-class RendererContext:
-    """Notebook resolution and HTML trust are explicit rendering inputs."""
+def _dialect(value):
+    if value not in (None, 'commonmark', 'notebook', 'extended'):
+        raise ValueError('Unknown renderer dialect.')
+    return 'extended' if value == 'notebook' else value
+
+
+def _resolve(notebook, target, source_path, dialect, *, graph=None, notes_by_path=None):
+    from .dialect import slugify
+    address = target.split('|', 1)[0].strip()
+    if address.startswith('#'):
+        return '#' + quote(slugify(address[1:].strip()))
+    if notebook is None:
+        return None
+    from pretty_notebook._internal import routes
+    graph = graph if graph is not None else notebook.graph_index()
+    result = graph.resolve(target, source=source_path)
+    if result.state != 'resolved':
+        return None
+    notes = notes_by_path if notes_by_path is not None else {note.source_path: note for note in notebook.notes.values()}
+    note = notes.get(result.path)
+    if note is None or (dialect == 'extended' and notebook.PUB_LNK_ONLY and not notebook.is_publishable(note)):
+        return None
+    url = routes.public_url(notebook.config.get('URL_PREFIX', ''), routes.route_for(note, notebook.config).route)
+    if '#' in address:
+        url += '#' + quote(slugify(address.split('#', 1)[1].strip()))
+    return safe_url(url)
+
+
+def _context(notebook=None, source_path=None, trust='escape', dialect=None, soft_breaks=None):
+    selected = _dialect(dialect)
+    graph, notes = None, None
+
+    def resolve(target, path):
+        nonlocal graph, notes
+        if notebook is not None and not target.split('|', 1)[0].strip().startswith('#') and graph is None:
+            graph = notebook.graph_index()
+            notes = {note.source_path: note for note in notebook.notes.values()}
+        return _resolve(notebook, target, path, selected, graph=graph, notes_by_path=notes)
+
+    def image(node, context):
+        from pretty_notebook._internal.routes import public_image_url
+        value = public_image_url(notebook.config if notebook else {}, node.name)
+        try:
+            safe_url(value)
+        except ValueError:
+            value = ''
+        value = escape(quote(value, safe="/:?#@!$&'()*+,;=%-._~"), quote=True)
+        return '<img class="img-fluid" src=\'' + value + "'>"
+
+    def keep_tag(tag, path):
+        return not (notebook is not None and notebook.config.get('HIDE_COMMIT_TAG') and tag == notebook.COMMIT_TAG)
+
+    def decorate(destination, path):
+        from pretty_notebook._internal.icons import render_icon
+        return ' ' + render_icon('external', size='sm')
+
+    return _Context(source_path=source_path, trust=trust, dialect=selected,
+                    soft_breaks=soft_breaks, resolver=resolve, tag_filter=keep_tag,
+                    decorate_link=decorate if selected == 'extended' else None,
+                    node_handlers=((ImageEmbed, image),))
+
+
+@dataclass(frozen=True, init=False)
+class RendererContext(_Context):
+    """Keep the notebook-first constructor and explicit HTML trust selection."""
 
     notebook: object | None = None
-    source_path: str | None = None
-    trust: Literal['escape', 'trusted'] = 'escape'
-    dialect: Literal['commonmark', 'notebook'] | None = None
-    soft_breaks: Literal['newline', 'br'] | None = None
+    resolver: object | None = field(default=None, init=False, compare=False)
+    image_resolver: object | None = field(default=None, init=False, compare=False)
+    tag_filter: object | None = field(default=None, init=False, compare=False)
+    decorate_link: object | None = field(default=None, init=False, compare=False)
+    node_handlers: tuple = field(default=(), init=False, compare=False)
 
-    def __post_init__(self):
-        if self.dialect not in {None, 'commonmark', 'notebook'} or self.soft_breaks not in {None, 'newline', 'br'}:
-            raise ValueError('Unknown renderer dialect or line-break policy.')
-        if self.trust not in {'escape', 'trusted'}:
-            raise ValueError('Unknown HTML trust policy.')
+    def __init__(self, notebook=None, source_path=None, trust='escape', dialect=None, soft_breaks=None):
+        context = _context(notebook, source_path, trust, dialect, soft_breaks)
+        for field in fields(_Context):
+            object.__setattr__(self, field.name, getattr(context, field.name))
+        object.__setattr__(self, 'notebook', notebook)
 
-    def resolve(self, target: str, *, graph=None, notes_by_path=None) -> str | None:
-        from .dialect import slugify
-        from urllib.parse import quote
-        address = target.split('|', 1)[0].strip()
-        if address.startswith('#'):
-            return '#' + quote(slugify(address[1:].strip()))
-        if self.notebook is None:
-            return None
-        from pretty_notebook._internal import routes
-        graph = graph if graph is not None else self.notebook.graph_index()
-        result = graph.resolve(target, source=self.source_path)
-        if result.state != 'resolved':
-            return None
-        notes = notes_by_path if notes_by_path is not None else {note.source_path: note for note in self.notebook.notes.values()}
-        note = notes.get(result.path)
-        if note is None or (self.dialect == 'notebook' and self.notebook.PUB_LNK_ONLY and not self.notebook.is_publishable(note)):
-            return None
-        url = routes.public_url(self.notebook.config.get('URL_PREFIX', ''), routes.route_for(note, self.notebook.config).route)
-        if '#' in address:
-            url += '#' + quote(slugify(address.split('#', 1)[1].strip()))
-        return safe_url(url)
-
-
-class Renderer(Protocol):
-    def render(self, document: Node, context: RendererContext) -> str:
-        """Render a node using the supplied resolution and trust policy."""
-        ...
+    def resolve(self, target, *, graph=None, notes_by_path=None):
+        return _resolve(self.notebook, target, self.source_path, self.dialect,
+                        graph=graph, notes_by_path=notes_by_path)
 
 
 class PythonMarkdownRenderer:
@@ -99,275 +142,56 @@ class Source(Node):
         return self.value
 
 
-@dataclass(frozen=True)
-class HeadingInfo:
-    level: int
-    title: str
-    identifier: str
-    span: object | None = None
+
+_LINK_MARKER = 'data-pnbp-external'
 
 
-@dataclass(frozen=True)
-class DiagramInfo:
-    language: str
-    source: str
-    span: object | None = None
+def _publication_links(node):
+    """Mark only typed links on copied values; keep caller source/state intact."""
+    children = getattr(node, 'children', ())
+    adapted = tuple(_publication_links(child) for child in children)
+    if not isinstance(node, Link) and all(a is b for a, b in zip(children, adapted)):
+        return node
+    result = copy(node)
+    if children:
+        object.__setattr__(result, 'children', adapted)
+    if isinstance(node, Link):
+        values = tuple((key, value) for key, value in node.attributes if key != _LINK_MARKER)
+        object.__setattr__(result, 'attributes', (*values, (_LINK_MARKER, '1')))
+    return result
 
 
-@dataclass(frozen=True)
-class RenderedMarkdown:
-    html: str
-    headings: tuple[HeadingInfo, ...] = ()
-    languages: tuple[str, ...] = ()
-    diagrams: tuple[DiagramInfo, ...] = ()
+def _external_attributes(match):
+    tag = match[0]
+    marker = ' ' + _LINK_MARKER + '="1"'
+    if marker not in tag:
+        return tag
+    return tag.replace(marker, '').replace('<a ', '<a rel="nofollow" target="_blank" ', 1)
 
 
-class TypedRenderer:
-    """Render typed nodes directly; escape HTML unless trust is explicit."""
-
-    def render(self, document: Node, context: RendererContext | None = None) -> str:
-        return self.render_document(document, context).html
-
-    def render_document(self, document: Node, context: RendererContext | None = None) -> RenderedMarkdown:
-        from html import escape
-        from urllib.parse import quote
-        from .dialect import attributes, slugify
-        from .inlines import decode, plain_text
-        from .nodes import (
-            BlockQuote, BoldText, BulletList, Code, CodeBlock, Container, Document,
-            FootnoteDefinition, FootnoteReference, HardBreak, Heading, HighlightedText,
-            Image, ImageEmbed, ItalicText, Link, ListItem, Paragraph, RawHtml,
-            ReferenceDefinition, SoftBreak, StrikethroughText, Table, TableOfContents,
-            TagText, TaskListItem, ThematicBreak,
-        )
+class TypedRenderer(_TypedRenderer):
+    def render_document(self, document, context=None):
         context = context or RendererContext()
-        notebook_dialect = (context.dialect or getattr(document, 'dialect', 'commonmark')) == 'notebook'
-        breaks = context.soft_breaks or ('br' if notebook_dialect else 'newline')
-
-        def text_escape(value):
-            return escape(value, quote=False).replace(chr(34), '&quot;')
-
-        def url(value):
-            try:
-                safe_url(value)
-            except ValueError:
-                return ''
-            return text_escape(quote(value, safe="/:?#@!$&'()*+,;=%-._~"))
-
-        def attrs(values, **overrides):
-            values = {**dict(values), **overrides}
-            allowed = {'id', 'class', 'title', 'lang', 'dir', 'role'}
-            return ''.join(' ' + key + '="' + text_escape(str(value)) + '"' for key, value in sorted(values.items())
-                           if value is not None and (key in allowed or re.fullmatch(r'(?:data|aria)-[a-z0-9-]+', key)))
-
-        def walk(node, *, definitions=True):
-            yield node
-            if isinstance(node, FootnoteDefinition) and not definitions:
-                return
-            for child in getattr(node, 'children', ()):
-                yield from walk(child, definitions=definitions)
-
-        all_nodes = tuple(walk(document))
-        headings, heading_ids, used_ids = [], {}, set()
-        languages, diagrams, code_options = [], [], {}
-        footnotes, references, counts = {}, {}, {}
-        for node in all_nodes:
-            if isinstance(node, Heading):
-                label = re.sub(r'\s+', ' ', plain_text(node.children)).strip()
-                identifier = dict(node.attributes).get('id', slugify(label))
-                while identifier in used_ids or not identifier:
-                    match = re.match(r'^(.*)_([0-9]+)$', identifier)
-                    identifier = f'{match[1]}_{int(match[2]) + 1}' if match else identifier + '_1'
-                used_ids.add(identifier)
-                heading_ids[id(node)] = identifier
-                headings.append(HeadingInfo(node.level, label, identifier, node.span))
-            elif isinstance(node, CodeBlock):
-                info = decode(node.info).strip() if node.info else node.language
-                options = attributes(info) if notebook_dialect and info.startswith('{') else None
-                options = {**dict(options or ()), **dict(node.attributes)}
-                classes = options.pop('class', '').split()
-                language = classes.pop(0) if classes else info.split()[0] if info and not info.startswith('{') else node.language
-                if classes:
-                    options['class'] = ' '.join(classes)
-                code_options[id(node)] = language, tuple(options.items())
-                if language and language not in languages:
-                    languages.append(language)
-                if notebook_dialect and language.casefold() == 'mermaid':
-                    diagrams.append(DiagramInfo('mermaid', node.body, node.span))
-            elif isinstance(node, FootnoteDefinition):
-                footnotes.setdefault(node.label, node)
-        reference_nodes = [node for node in walk(document, definitions=False) if isinstance(node, FootnoteReference)]
-        reference_nodes += [node for definition in footnotes.values() for node in walk(definition) if isinstance(node, FootnoteReference)]
-        for node in reference_nodes:
-            counts[node.label] = counts.get(node.label, 0) + 1
-            references[id(node)] = counts[node.label]
-        footnote_numbers = {label: position + 1 for position, label in enumerate(footnotes)}
-        graph, note_paths, resolutions = None, None, {}
-
-        def resolve(target):
-            nonlocal graph, note_paths
-            if target not in resolutions:
-                if context.notebook is not None and graph is None:
-                    graph = context.notebook.graph_index()
-                    note_paths = {note.source_path: note for note in context.notebook.notes.values()}
-                resolutions[target] = context.resolve(target, graph=graph, notes_by_path=note_paths)
-            return resolutions[target]
-
-        def inline(node):
-            if isinstance(node, TagText) and context.notebook is not None:
-                if context.notebook.config.get('HIDE_COMMIT_TAG') and node.value == context.notebook.COMMIT_TAG:
-                    return ''
-            if isinstance(node, Text):
-                return text_escape(node.value)
-            if isinstance(node, Code):
-                return '<code' + attrs(node.attributes) + '>' + text_escape(node.value) + '</code>'
-            if isinstance(node, HardBreak):
-                return '<br />\n'
-            if isinstance(node, SoftBreak):
-                return '<br />\n' if breaks == 'br' else '\n'
-            if isinstance(node, RawHtml):
-                return node.value if context.trust == 'trusted' else text_escape(node.value)
-            if isinstance(node, NotebookLink):
-                address, _, label = node.target.partition('|')
-                label = text_escape(label.strip() or address.strip().replace('#', ' > '))
-                resolved = resolve(node.target)
-                # Preserve the established notebook-link attribute spelling.
-                if resolved is None:
-                    return label
-                if notebook_dialect:
-                    return "<a href='" + url(resolved).replace("'", '&#39;') + "'>" + label + '</a>'
-                return '<a href="' + url(resolved) + '">' + label + '</a>'
-            if isinstance(node, ImageEmbed):
-                from pretty_notebook._internal.routes import public_image_url
-                image_url = public_image_url(context.notebook.config if context.notebook else {}, node.name)
-                return '<img class="img-fluid" src=\'' + url(image_url).replace("'", '&#39;') + "'>"
-            if isinstance(node, Image):
-                values = dict(node.attributes)
-                if node.title is not None:
-                    values.setdefault('title', node.title)
-                return '<img src="' + url(node.destination) + '" alt="' + text_escape(node.alt) + '"' + attrs(values) + ' />'
-            if isinstance(node, FootnoteReference):
-                label = node.label
-                if label not in footnotes:
-                    return text_escape('[^' + label + ']')
-                occurrence = references.get(id(node), 1)
-                ref = 'fnref' + (str(occurrence) if occurrence > 1 else '') + ':' + label
-                return '<sup id="' + text_escape(ref) + '"><a class="footnote-ref" href="' + url('#fn:' + label) + '">' + str(footnote_numbers[label]) + '</a></sup>'
-            content = ''.join(inline(child) for child in node.children) if isinstance(node, Container) else ''
-            if isinstance(node, Link):
-                extra = ' rel="nofollow" target="_blank"' if notebook_dialect else ''
-                values = dict(node.attributes)
-                if node.title is not None:
-                    values.setdefault('title', node.title)
-                rendered = '<a' + extra + ' href="' + url(node.destination) + '"' + attrs(values) + '>' + content + '</a>'
-                if notebook_dialect:
-                    from pretty_notebook._internal.icons import render_icon
-                    rendered += ' ' + render_icon('external', size='sm')
-                return rendered
-            tag = 'strong' if isinstance(node, BoldText) else 'em' if isinstance(node, ItalicText) else 's' if isinstance(node, StrikethroughText) else 'mark' if isinstance(node, HighlightedText) else None
-            if tag:
-                return '<' + tag + attrs(node.attributes) + '>' + content + '</' + tag + '>'
-            raise TypeError(f'Unsupported inline node: {type(node).__name__}')
-
-        def toc():
-            roots, stack = [], []
-            for heading in headings:
-                entry = [heading, []]
-                while stack and stack[-1][0].level >= heading.level:
-                    stack.pop()
-                (stack[-1][1] if stack else roots).append(entry)
-                stack.append(entry)
-            def items(entries):
-                if not entries:
-                    return ''
-                return '<ul>\n' + ''.join('<li><a href="' + url('#' + item.identifier) + '">' + text_escape(item.title) + '</a>' + ('\n' + items(children) if children else '') + '</li>\n' for item, children in entries) + '</ul>\n'
-            return '<div class="toc">\n' + items(roots) + '</div>\n'
-
-        def block(node, tight=False):
-            if isinstance(node, Heading):
-                tag = f'h{node.level}'
-                values = dict(node.attributes)
-                if notebook_dialect:
-                    values['id'] = heading_ids[id(node)]
-                return '<' + tag + attrs(values) + '>' + ''.join(inline(child) for child in node.children) + '</' + tag + '>\n'
-            if isinstance(node, Paragraph):
-                content = ''.join(inline(child) for child in node.children)
-                return content + '\n' if tight else '<p' + attrs(node.attributes) + '>' + content + '</p>\n'
-            if isinstance(node, CodeBlock):
-                language, options = code_options[id(node)]
-                if notebook_dialect and language.casefold() == 'mermaid':
-                    return '<pre class="mermaid">' + text_escape(node.body) + '</pre>\n'
-                code_attr = ' class="language-' + text_escape(language) + '"' if language else ''
-                body = node.body
-                if node.source is None and body and not body.endswith('\n'):
-                    body += '\n'
-                return '<pre' + attrs(options) + '><code' + code_attr + '>' + text_escape(body) + '</code></pre>\n'
-            if isinstance(node, ThematicBreak):
-                return '<hr />\n'
-            if isinstance(node, BlockQuote):
-                return '<blockquote>\n' + ''.join(block(child) for child in node.children) + '</blockquote>\n'
-            if isinstance(node, Table):
-                def row(item, header=False):
-                    tag = 'th' if header else 'td'
-                    cells = []
-                    for position, cell in enumerate(item.children):
-                        alignment = node.alignments[position]
-                        style = ' style="text-align: ' + alignment + ';"' if alignment else ''
-                        cells.append('<' + tag + style + attrs(cell.attributes) + '>' + ''.join(inline(child) for child in cell.children) + '</' + tag + '>\n')
-                    return '<tr>\n' + ''.join(cells) + '</tr>\n'
-                return '<table' + attrs(node.attributes) + '>\n<thead>\n' + row(node.children[0], True) + '</thead>\n<tbody>\n' + ''.join(row(item) for item in node.children[1:]) + '</tbody>\n</table>\n'
-            if isinstance(node, TableOfContents):
-                return toc()
-            if isinstance(node, BulletList):
-                ordered = hasattr(node, 'start')
-                tag = 'ol' if ordered else 'ul'
-                attr = f' start="{node.start}"' if ordered and node.start != 1 else ''
-                if any(isinstance(child, TaskListItem) for child in node.children):
-                    attr += ' class="task-list"'
-                return '<' + tag + attr + '>\n' + ''.join(block(child, node.tight) for child in node.children) + '</' + tag + '>\n'
-            if isinstance(node, ListItem):
-                visible = [child for child in node.children if not isinstance(child, (ReferenceDefinition, FootnoteDefinition))]
-                if not visible:
-                    return '<li></li>\n'
-                content = ''.join(block(child, tight) for child in visible)
-                attr = ''
-                if isinstance(node, TaskListItem):
-                    checkbox = '<input type="checkbox" disabled=""' + (' checked=""' if node.checked else '') + ' /> '
-                    content = checkbox + content if tight else content.replace('>', '>' + checkbox, 1)
-                    attr = ' class="task-list-item"'
-                before = '' if tight and isinstance(visible[0], Paragraph) else '\n'
-                if tight and isinstance(visible[-1], Paragraph):
-                    content = content.removesuffix('\n')
-                return '<li' + attr + '>' + before + content + '</li>\n'
-            if isinstance(node, FootnoteDefinition):
-                return ''
-            if isinstance(node, Document):
-                return ''.join(block(child) for child in node.children)
-            if isinstance(node, ReferenceDefinition):
-                return ''
-            if isinstance(node, RawHtml):
-                return inline(node)
-            return '<p>' + inline(node) + '</p>\n'
-
-        rendered = block(document)
-        if footnotes:
-            entries = []
-            for label, definition in footnotes.items():
-                content = ''.join(block(child) for child in definition.children)
-                backrefs = ''.join('<a class="footnote-backref" href="' + url('#fnref' + (str(number) if number > 1 else '') + ':' + label) + '" title="Jump back to footnote ' + str(footnote_numbers[label]) + ' in the text">&#8617;</a>' for number in range(1, counts.get(label, 0) + 1))
-                if backrefs:
-                    if content.endswith('</p>\n'):
-                        content = content[:-5] + '&#160;' + backrefs + '</p>\n'
-                    else:
-                        content += '<p>' + backrefs + '</p>\n'
-                entries.append('<li id="' + text_escape('fn:' + label) + '">\n' + content + '</li>\n')
-            rendered += '<div class="footnote">\n<hr />\n<ol>\n' + ''.join(entries) + '</ol>\n</div>\n'
-        return RenderedMarkdown(rendered.removesuffix('\n'), tuple(headings), tuple(languages), tuple(diagrams))
+        dialect = context.dialect or getattr(document, 'dialect', 'commonmark')
+        if isinstance(context, RendererContext):
+            context = _context(context.notebook, context.source_path, context.trust, dialect, context.soft_breaks)
+        elif dialect == 'notebook':
+            context = replace(context, dialect='extended')
+        extended = context.dialect == 'extended'
+        result = super().render_document(_publication_links(document) if extended else document, context)
+        if extended:
+            # The typed marker distinguishes ordinary links from wiki/TOC/footnote links.
+            result = replace(result, html=re.sub(r'<a\s[^>]*>', _external_attributes, result.html))
+        return result
 
 
 class NotebookRenderer(TypedRenderer):
     def render_document(self, document, context=None):
-        context = replace(context or RendererContext(), dialect='notebook')
+        context = context or RendererContext()
+        if isinstance(context, RendererContext):
+            context = RendererContext(context.notebook, context.source_path, context.trust, 'notebook', context.soft_breaks)
+        else:
+            context = replace(context, dialect='extended')
         return super().render_document(document, context)
 
 

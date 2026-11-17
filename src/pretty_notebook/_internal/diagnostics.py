@@ -12,7 +12,7 @@ def diagnose_notebook(selection):
     def record(name, status, message):
         checks.append({'check': name, 'status': status, 'message': message})
 
-    for distribution, module in (('expose-interface', 'expose_interface'), ('requ', 'requ'), ('rich', 'rich')):
+    for distribution, module in (('expose-interface', 'expose_interface'), ('requ', 'requ'), ('parse-md', 'parse_md'), ('escape-colors', 'escape_colors'), ('astree', 'astree')):
         try:
             version = metadata.version(distribution)
             if util.find_spec(module) is None:
