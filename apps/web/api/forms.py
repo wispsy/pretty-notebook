@@ -1,13 +1,8 @@
 """Local inbox for validated public form submissions."""
 
-from fastapi import APIRouter, Depends, Query
 from tortoise import fields
 from tortoise.models import Model
 
-from .permissions import require_permission
-
-
-router = APIRouter()
 
 
 class FormSubmission(Model):
@@ -22,14 +17,10 @@ async def save_submission(form_name: str, payload: dict[str, str]) -> None:
     await FormSubmission.create(form_name=form_name, payload=payload)
 
 
-@router.get(
-    "/api/forms/{form_name}/submissions",
-    dependencies=[Depends(require_permission("inbox"))],
-)
 async def list_submissions(
     form_name: str,
-    limit: int = Query(100, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    limit: int = 100,
+    offset: int = 0,
 ):
     return await (
         FormSubmission.filter(form_name=form_name)

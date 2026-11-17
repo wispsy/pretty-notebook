@@ -8,7 +8,7 @@ from stat import S_IMODE
 import pytest
 from api import atomic_io, site_api
 from api.png import PNG_SIGNATURE, validate_png
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 
 

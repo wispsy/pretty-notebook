@@ -1,21 +1,19 @@
+
+from expose_api import HTTPException, UploadFile
+from native_requests import ApplicationRequest as Request
 import datetime
 from pathlib import Path
-from typing import Annotated
 
-import fastapi
-from fastapi import Depends, File, HTTPException, UploadFile, Request
 from pydantic import BaseModel, Field
 from web_config import IMAGES_PATH, PAGES_PATH
 
 from .atomic_io import atomic_write_bytes
-from .permissions import require_permission
 from .notebooks import publication_store, image_directory
 from pretty_notebook._internal.routes import validate_route
 from .catalog import RouteConflict
 from .catalog import publication_body as publication_body
 from .catalog import LEGACY_PAGE_PREFIX as LEGACY_PAGE_PREFIX, LEGACY_PAGE_SUFFIX as LEGACY_PAGE_SUFFIX
 
-router = fastapi.APIRouter()
 
 PUB_PATH = PAGES_PATH
 MAX_PUBLICATION_CHARS = 2_000_000
@@ -81,13 +79,6 @@ async def add_publishment(name: str, content: str, *, store, **metadata) -> Publ
     return pub
 
 
-@router.post(
-    "/api/publishment",
-    name="add_pub",
-    status_code=201,
-    response_model=Publishment,
-    dependencies=[Depends(require_permission("publish"))],
-)  # if ok status_code 200 -> 201, if not, it's handled in the ValidationError
 async def publishment_post(pub_submittal: PublicationInput, request: Request):
     """Store a publication."""
     n = pub_submittal.name
@@ -96,8 +87,7 @@ async def publishment_post(pub_submittal: PublicationInput, request: Request):
     return await add_publishment(n, c, store=await publication_store(request), title=pub_submittal.title, aliases=pub_submittal.aliases, previous_name=pub_submittal.previous_name)
 
 
-@router.post("/api/routes/preview", dependencies=[Depends(require_permission("publish"))])
-async def routes_preview(request: Request, claims: Annotated[list[RouteClaim], fastapi.Body(max_length=200)]):
+async def routes_preview(request: Request, claims: list[RouteClaim]):
     return await (await publication_store(request)).preview_routes([claim.model_dump() for claim in claims])
 
 
@@ -125,13 +115,7 @@ def image_path(filename: str | None, directory=None) -> Path:
     return target
 
 
-@router.post(
-    "/api/image",
-    name="add_img",
-    status_code=201,
-    dependencies=[Depends(require_permission("publish"))],
-)
-async def image_post(request: Request, file: Annotated[UploadFile, File(...)]):
+async def image_post(request: Request, file: UploadFile):
     """Validate and atomically store a bounded image upload."""
     target, content = await read_image_upload(file, directory=await image_directory(request))
     async with request.app.state.publications.lock:
@@ -154,13 +138,11 @@ async def read_image_upload(file, *, directory=None):
     return target, content
 
 
-@router.get("/api/publishments", dependencies=[Depends(require_permission("publish"))])
 async def publishments_get(request: Request) -> list:
     """Publishments Get"""
     return await (await publication_store(request)).inventory()
 
 
-@router.get("/api/images", dependencies=[Depends(require_permission("publish"))])
 async def images_get(request: Request) -> list:
     """Images Get"""
     directory = await image_directory(request)
@@ -177,7 +159,6 @@ async def images_get(request: Request) -> list:
     return img_data
 
 
-@router.delete("/api/publishment/{pub_name:path}", dependencies=[Depends(require_permission("publish"))])
 async def publishment_delete(pub_name: str, request: Request):
     """Publishment Delete"""
     supplied = Path(pub_name)

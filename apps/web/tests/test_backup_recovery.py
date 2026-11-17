@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import pwd
 
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from api import layout_api, publish_api
 from test_notebook_ownership import writer, create

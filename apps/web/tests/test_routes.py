@@ -3,7 +3,7 @@ from functools import partial
 
 import pytest
 from api import catalog
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from tortoise import connections
 

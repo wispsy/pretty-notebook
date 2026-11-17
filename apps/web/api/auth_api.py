@@ -1,13 +1,14 @@
 """Bearer authentication and single-use owner bootstrap."""
 
+from native_requests import ResponseMetadata
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
 
 import jwt
 from decouple import config
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.hash import bcrypt
 from pydantic import BaseModel, Field, field_validator
 from tortoise import connections, fields
@@ -15,7 +16,6 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.models import Model
 from tortoise.transactions import in_transaction
 
-router = APIRouter()
 
 JWT_SECRET = config("JWT_SECRET")
 JWT_ALGO = config("JWT_ALGO", default="HS256")
@@ -35,9 +35,6 @@ def validate_jwt_settings(secret: str, algorithm: str) -> None:
 
 
 validate_jwt_settings(JWT_SECRET, JWT_ALGO)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
-optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token", auto_error=False)
 
 
 class User(Model):
@@ -81,7 +78,7 @@ User_Pydantic = pydantic_model_creator(
 
 
 async def get_optional_user(
-    token: Annotated[str | None, Depends(optional_oauth2_scheme)] = None,
+    token: str | None = None,
 ):
     """Authenticate a supplied token while allowing a genuinely absent token."""
     if token is None:
@@ -112,7 +109,7 @@ def _require_bootstrap_token(request: Request) -> None:
         or not secrets.compare_digest(supplied, expected)
     ):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status=403,
             detail="A valid bootstrap token is required.",
         )
 
@@ -130,18 +127,17 @@ async def _save_user(user: UserInput, *, role='reader') -> User_Pydantic:
     return await User_Pydantic.from_tortoise_orm(user_obj)
 
 
-@router.post("/api/users", response_model=User_Pydantic)
 async def create_user(
     user: UserInput,
     request: Request,
-    curr_user: Annotated[User_Pydantic | None, Depends(get_optional_user)],
+    curr_user: User_Pydantic | None,
 ):
     """Allow one secret-authorized owner claim, then owner-created accounts."""
     if curr_user is None:
         async with request.app.state.bootstrap_lock:
             if await _has_ever_created_user():
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    status=401,
                     detail="Cannot access.",
                 )
             _require_bootstrap_token(request)
@@ -149,7 +145,7 @@ async def create_user(
 
     if curr_user.role != 'owner' or 'admin' not in curr_user.scopes:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status=401,
             detail="Not allowed.",
         )
 
@@ -188,10 +184,9 @@ async def _generate_token(user: User) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
 
 
-@router.post("/api/token")
 async def generate_token(
-    response: Response,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    response: ResponseMetadata,
+    form_data,
 ):
     user = await authenticate_user(
         username=form_data.username,
@@ -199,7 +194,7 @@ async def generate_token(
     )
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status=401,
             detail="Invalid username or password",
         )
 
@@ -211,13 +206,13 @@ async def generate_token(
 
 def unauthorized(detail: str) -> HTTPException:
     return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status=401,
         detail=detail,
         headers={"WWW-Authenticate": "Bearer"},
     )
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(token: str):
     from .permissions import authenticate_credential, principal_for
     if token.startswith('pnbp_'):
         return await authenticate_credential(token)
@@ -248,15 +243,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     return await principal_for(user)
 
 
-@router.get("/api/users/me", response_model=User_Pydantic)
-async def get_user(user: Annotated[User_Pydantic, Depends(get_current_user)]):
+async def get_user(user: User_Pydantic):
     return {"id": user.id, "username": user.username}
 
 
-@router.post("/api/users/me", response_model=User_Pydantic)
 async def reset_password(
     password: PasswordInput,
-    user: Annotated[User_Pydantic, Depends(get_current_user)],
+    user: User_Pydantic,
 ):
     from .permissions import authorize
     orm_user = await User.get_or_none(id=user.id)
@@ -270,6 +263,5 @@ async def reset_password(
     return await User_Pydantic.from_tortoise_orm(orm_user)
 
 
-@router.get("/api")
-async def api_index(user: Annotated[User_Pydantic, Depends(get_current_user)]):
+async def api_index(user: User_Pydantic):
     return {"authenticated": True, "username": user.username}

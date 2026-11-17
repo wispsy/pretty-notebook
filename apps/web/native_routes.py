@@ -1,15 +1,14 @@
 """Explicit native bindings for accounts, site administration and public pages."""
 
-from types import SimpleNamespace
 from typing import Literal
 
 from expose_api import JSONResponse, Response
-from fastapi import HTTPException
+from expose_api import HTTPException
 from pydantic import BaseModel, Field, TypeAdapter
 
 from api import auth_api, forms as inbox, layout_api, notebooks, operation_logs, permissions, site_api
 from api.search_api import SearchField
-from native_requests import (ApplicationRequest, Authentication, Headers, JSONBody, MISSING, UploadBody,
+from native_requests import (ApplicationRequest, Authentication, JSONBody, ResponseMetadata, UploadBody,
     file_input, form_input, model_input, query_input, raise_inputs, response_for, validated)
 from native_assets import register as register_assets, StaticResponse
 from views import forms, home, navigation, search
@@ -67,19 +66,6 @@ class ContentQuery(BaseModel):
     related: bool = True
 
 
-POST_PATHS = {'/api/users', '/api/token', '/api/users/me', '/api/credentials', '/api/notebooks',
-              '/api/layout', '/api/favicon', '/theme', '/appearance'}
-
-
-def selected(method, path):
-    if method == 'GET':
-        return path not in {'/docs', '/redoc', '/docs/oauth2-redirect', '/openapi.json'}
-    return (method == 'POST' and (path in POST_PATHS or path.startswith('/forms/')) or
-            method == 'PUT' and (path == '/api/appearance/stylesheet' or
-                path.startswith('/api/users/') and path.endswith(('/role', '/grants'))) or
-            method == 'DELETE' and path.startswith('/api/credentials/'))
-
-
 def register(app, services):
     adapters = {schema: TypeAdapter(schema) for schema in (auth_api.UserInput, auth_api.PasswordInput,
         permissions.RoleInput, permissions.GrantInput, permissions.CredentialInput,
@@ -120,7 +106,7 @@ def register(app, services):
     @app.route('/api/token', methods=('POST',), public=True)
     async def token(request):
         data = await form_input(request, TokenForm)
-        metadata = SimpleNamespace(headers={})
+        metadata = ResponseMetadata(headers={})
         result = await auth_api.generate_token(metadata, data)
         return JSONResponse(result, headers=metadata.headers)
 
@@ -209,8 +195,8 @@ def register(app, services):
 
     register_assets(app, services)
 
-    @app.route('/api/', public=True)
-    @app.route('/api/{unknown:path}', public=True)
+    @app.route('/api/', methods=('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'), public=True)
+    @app.route('/api/{unknown:path}', methods=('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'), public=True)
     async def unknown_api(request):
         raise HTTPException(404, 'Not Found')
 

@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from api import operation_logs, publish_api
 from test_notebook_ownership import create, writer

@@ -1,110 +1,101 @@
 # Web framework migration
 
-The immutable Pretty Notebook 0.12.0 release records the FastAPI/Starlette web
-baseline. PNB-WEB implementation follows that release and uses published
-`expose-api==0.2.0` and `backpack-store==0.2.0` with checked registry hashes.
-Tortoise, Pydantic, Jinja2 and the supported SQLite storage topology remain
-application-owned. PostgreSQL is deferred entirely to a future session.
+The repository web publisher now uses `expose-api==0.2.0` as its sole HTTP
+runtime. FastAPI, Starlette, Python Multipart and their registration metadata
+are absent from the production dependency locks and application imports.
+Python 3.14+ is required. Tortoise 1.1.7, Pydantic, caller-owned Jinja2 and the
+qualified local SQLite topology remain application-owned. PostgreSQL is deferred
+entirely to a future session.
 
-## Factory selection
+The published `pretty-notebook==0.12.0` and metadata alias `pnbp==0.12.0` are
+immutable and retain their historical source baseline. The repository web app
+is separate from those wheels. Supporting releases `expose-api==0.2.0`,
+`enforce-type==0.2.0` and `backpack-store==0.2.0` were published and verified
+against their registry artifact hashes before this migration. Expose API has no
+base runtime dependencies; this application's model/ORM/template choices do not
+change that library contract.
 
-`create_app(framework='fastapi')` selects the baseline. Select `'expose-api'` to
-exercise the staged native HTTP factory. The explicit argument overrides
-`PNBP_WEB_FRAMEWORK`; its default remains `fastapi` until complete parity passes.
-Invalid selections fail during construction. The compatibility stage shares
-the existing application state and delegates one baseline lifespan, preserving
-startup diagnostics, lock ownership, migrations and ORM shutdown. Unported route
-groups explicitly delegate to the baseline; no signature injection or automatic
-ORM/model translation is provided.
+## Runtime and upgrade selection
 
-## Recorded HTTP surface
+`create_app()` and `create_app(framework='expose-api')` select the native
+application. `PNBP_WEB_FRAMEWORK` can be omitted or set to `expose-api`.
+Remove a temporary `fastapi` selection from staged migration checkouts; other
+values fail during construction. Use the whole reviewed checkout and its locks
+for upgrades and stopped-site rollback. No new package version or live deployment
+is implied by this repository migration.
 
-| Group | Declared handlers | Contract retained by the compatibility fixtures |
-| --- | ---: | --- |
-| Authentication/accounts | 5 | Bootstrap, bearer tokens, revocation, password changes and account index |
-| Roles, grants and credentials | 5 | Notebook scopes, ownership, delegation and concealed denial |
-| Notebooks and operation logs | 3 | Shared durable state and redacted receipts |
-| Legacy publishing/uploads | 6 | Page routes, previews, images and deletion |
-| Checked publishing | 5 | Capabilities, inventory, ETags, hashes, conflicts and checked uploads |
-| Layout and form inbox | 2 | Validated settings and bounded stored submissions |
-| Search API | 1 | Repeated tags, literal search, bounds and error shapes |
-| Appearance and favicon API/assets | 4 | CSS, uploads, immutable versions and dynamic-asset precedence |
-| Pages/forms/navigation/search views | 10 | Escaping, cookies, redirects, root paths and fixed/catch-all precedence |
-| Main factory | 2 | Health and unknown-API response shape |
+The application owns one Tortoise initialization/close pair per worker lifespan,
+using the same UTC and global fallback selection as the previous pinned ORM
+integration. Startup retains private directory preparation, process-locked schema
+migration, publication reconciliation, public indexes and asset-layout validation.
+Shutdown closes database connections, including failed startup after initialization.
+Public ASGI startup failures stay sanitized; local process owners retain the
+original actionable configuration/storage exception.
 
-The baseline also serves `/openapi.json`, `/docs`, `/docs/oauth2-redirect` and
-`/redoc`, plus `/static/imgs` before the general `/static` mount. Middleware
-retains trusted hosts, application security/CSP/cache headers and operation
-auditing. The default factory remains the baseline during the pilot. The Expose API
-selection now serves GET `/healthz` and GET `/api/search` through native explicit
-handlers, with shared readiness/search services and application-owned Pydantic
-query validation. Validation locations, missing-input details, JSON bytes,
-security/cache headers and root prefixes retain the baseline protocol. Other
-methods and unported groups explicitly delegate to the recorded baseline;
-native automatic HEAD/OPTIONS behavior is not silently selected for these URLs.
-Transcript checks compare both factories over one persistent database across
-restart and prove native GET requests bypass the baseline HTTP router.
+## HTTP compatibility
 
-The unchanged web protocol fixtures run against both factories, including
-authentication, headers/cookies, invalid input, files, uploads, transaction
-rollback, restart and independent worker visibility. Worker identification is
-test-only ordinary ASGI middleware. The public Expose API async client also
-qualifies single startup/shutdown ownership. New modules enter coverage and the
-container file inventory.
+| Group | Retained application contract |
+| --- | --- |
+| Accounts | Single-use bootstrap, bearer/password/script credentials and revocation |
+| Permissions and notebooks | Roles, grants, scoped credentials, ownership and isolated namespaces |
+| Publishing | Legacy and checked routes, revision/hash ETags, conflicts, rollback and images |
+| Site and inbox | Validated settings, bounded CSS/favicon uploads and stored form submissions |
+| Search and navigation | Literal search, repeated tags, bounds, escaped server-rendered views |
+| Pages and preferences | Caller-owned escaped Jinja templates, cookies, redirects and mounted prefixes |
+| Middleware | Trusted hosts, CSP/security/cache policy, redacted durable operation receipts |
+| HTTP methods | Declared methods, API fallthrough, static GET/HEAD and existing 404/405 responses |
 
-## Delivery gates
+Explicit native routes call application services directly. There is no signature
+injection, automatic ORM/model translation or remaining baseline HTTP delegation.
+Typed providers own authentication, decoded JSON and managed multipart resources.
+Wire syntax precedes authentication; semantic validation follows it where the
+previous contract did. Application Pydantic errors retain their ordered locations,
+missing-input details and exact JSON response bytes. Managed uploads close every
+parsed file after success, rejection or cancellation. Receipts finalize at response
+start, or as failed if a canceled request never starts a response.
 
-The owning [PNB-WEB issues](https://github.com/wispsy/expose_api/issues/86) are
-linked in both the Expose API and Pretty Notebook Projects. PNB-WEB-01 owns this
-inventory/selectable harness; PNB-WEB-02 ports health/search, PNB-WEB-03 ports
-authenticated publishing/uploads, and PNB-WEB-04 qualifies remaining groups and
-switches the default. Keep each PR focused and collect passing checks before
-merging the dependent stack. Package publication does not deploy a running site.
+The application-owned `apps/web/openapi.json` preserves API paths, operation IDs,
+schemas and bearer security metadata. Tests compare every described operation to
+the registered native route inventory and application model schemas. Update this
+contract with future API changes. `/openapi.json` supplies the active root prefix.
+`/docs`, `/redoc` and `/docs/oauth2-redirect` remain available as a local API
+reference linking the schema; the reference uses no remote scripts or interactive
+Swagger/Redoc runtime. Template debug context is emitted only when an ASGI test
+transport requests that extension.
 
+## Selected finite profiles
 
-## Authenticated publishing stage
+Native requests use an 8 KiB / 128-field query budget, a 128-field URL-encoded
+form budget and a 16 MiB wire-body budget. Image services retain their 10 MiB application limit; CSS and favicon
+limits remain 64 KiB and 1 MiB. Wire refusals retain their selected 4xx status
+and public detail. Unexpected handler failures retain the value-free plaintext
+500 body and media type, and now also retain configured security/no-store headers
+and operation correlation receipts.
 
-The Expose API selection now owns all legacy publishing/preview/image handlers
-and the checked publishing group. Explicit typed request providers retain the
-authenticated principal, decoded JSON and managed multipart resources. JWT and
-script-credential verification, notebook permissions, revisions, ETags, hash
-checks, rollback and publication services are reused directly. Syntax decoding
-precedes authentication; semantic model/file validation follows it, matching the
-recorded error ordering. Wire bodies have a 16 MiB total bound; image services
-retain their existing 10 MiB limit and filename/signature checks.
-
-Both factories use one shared redacted audit-begin service. The native ordinary
-ASGI audit middleware completes the same receipt at response-start and preserves
-the operation correlation header, retention, failure and recovery rules. Managed
-upload providers remain open through handler/response ownership and close every
-parsed file on exit. Unsupported methods and unported groups still delegate.
-
-Unexpected handler failures retain the baseline's value-free plaintext 500 body
-and media type. The native final boundary also retains configured security and
-no-store headers, plus the operation correlation receipt on these errors; the
-baseline could omit them when an exception escaped its HTTP middleware.
-
-The native request reader retains its finite 8 KiB / 128-field query profile and
-16 MiB body profile. Valid bounded search inputs fit that query budget. Wire
-refusals retain their selected 4xx status and public detail rather than entering
-the sanitized unexpected-failure boundary.
-
-## Remaining handler stage
-
-PNB-WEB-04A moves accounts, permissions, notebooks, logs, inbox, layout, appearance,
-favicons, public pages, forms, navigation and static delivery onto explicit native
-bindings. Pydantic remains application-owned, including ordered path/body errors,
-form defaults, query lists and syntax-before-authentication behavior. Shared
-services retain the same authorization, storage and transaction ownership.
-Templates retain autoescaping and debug context; cookies, redirects, asset URLs,
-CSP and cache policy preserve mounted root prefixes. Only unsupported methods,
-generated reference pages and lifecycle still delegate during this stage.
-
-Static assets use Expose API's rooted static profile. Published images use an
-application-selected private tree and native owned file responses so existing
+Repository assets use the native rooted static profile. Published images use an
+application-selected private tree and native owned file responses so previously
 accepted POSIX filenames remain downloadable. Symlinks and root escapes are
-refused; the tree and its ancestors must stay application-owned. Native file
-responses use weak metadata validators and a single byte-range profile; multiple
-ranges receive 416. These static validators are intentionally independent of
-checked publishing's existing strong revision/hash ETags. Known manifest assets
-retain immutable caching; pages do not gain API no-store headers.
+refused; the tree and its ancestors must remain application-owned. Native files
+use weak metadata validators and one byte range; multiple ranges receive 416.
+Checked publishing's strong revision/hash ETags are unchanged. Manifest assets
+retain immutable caching; pages do not acquire API no-store headers.
+
+## Acceptance and delivery
+
+[PNB-WEB-01 through PNB-WEB-04](https://github.com/wispsy/expose_api/issues/86)
+are tracked in both project queues. Four staged PRs established the inventory,
+pilot, authenticated publishing and remaining handlers. The full dual-factory
+suite passed 805 tests at 97% branch-inclusive coverage before removal. Recorded
+validation and method transcripts preserve that evidence without retaining the
+previous implementation as a test dependency.
+
+The final native suite covers persistent restart, independent four-worker
+visibility, owner races, stale writes, transaction rollback, templates/cookies,
+file selection/ranges and cancellation cleanup. The existing Starlette ASGI test
+client remains test-only; the public Expose API async client also qualifies
+native lifecycle and pages. `scripts/check_web_runtime.py` runs in a fresh
+production environment before installing test tools and checks bootstrap, checked
+publishing, pages, search, receipts, cookies, docs, host refusal, restart and ORM
+shutdown with neither old framework installed or imported. Container acceptance
+checks framework absence and exercises startup, publication, backup/restore and
+restart. Package publication does not deploy a running site.

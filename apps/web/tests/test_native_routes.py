@@ -1,9 +1,11 @@
 """Remaining handler parity and application-selected native file behavior."""
 
+import json
+from pathlib import Path
 from urllib.parse import quote
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from main import create_app
 
@@ -11,10 +13,8 @@ from main import create_app
 @pytest.mark.parametrize('web_framework', ['expose-api'], indirect=True)
 def test_remaining_groups_bypass_baseline(web_storage, root_credentials, bootstrap_headers, monkeypatch):
     app = create_app(db_url='sqlite://:memory:', framework='expose-api', root_path='/notes')
-    async def refused(scope, receive, send):
-        raise AssertionError('A ported request reached the baseline HTTP router')
     with TestClient(app) as client:
-        monkeypatch.setattr(app.baseline, 'middleware_stack', refused)
+        assert not hasattr(app, 'baseline')
         assert client.post('/notes/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
         token = client.post('/notes/api/token', data={'username': root_credentials['username'],
             'password': root_credentials['password_hash']}).json()['access_token']
@@ -33,7 +33,7 @@ def test_remaining_groups_bypass_baseline(web_storage, root_credentials, bootstr
         assert client.get('/notes/api/unknown').json() == {'detail': 'Not Found'}
 
 
-@pytest.mark.parametrize('web_framework', ['fastapi'], indirect=True)
+@pytest.mark.parametrize('web_framework', ['expose-api'], indirect=True)
 def test_remaining_validation_transcripts_match(web_storage, tmp_path, root_credentials, bootstrap_headers):
     database = f'sqlite://{tmp_path / "remaining.sqlite3"}'
     cases = [
@@ -47,20 +47,18 @@ def test_remaining_validation_transcripts_match(web_storage, tmp_path, root_cred
         ('POST', '/api/notebooks', {'json': {}}), ('POST', '/api/credentials', {'json': {}}),
         ('DELETE', '/api/credentials/bad', {}),
     ]
-    transcripts, headers = [], {}
-    for framework in ('fastapi', 'expose-api'):
-        with TestClient(create_app(db_url=database, framework=framework)) as client:
-            if framework == 'fastapi':
-                assert client.post('/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
-                token = client.post('/api/token', data={'username': root_credentials['username'],
-                    'password': root_credentials['password_hash']}).json()['access_token']
-                headers = {'Authorization': 'Bearer ' + token}
-            transcript = []
-            for method, path, values in cases:
-                response = client.request(method, path, headers=headers, **values)
-                transcript.append((method, path, response.status_code, response.content, dict(response.headers)))
-            transcripts.append(transcript)
-    assert transcripts[0] == transcripts[1]
+    with TestClient(create_app(db_url=database)) as client:
+        assert client.post('/api/users', json=root_credentials, headers=bootstrap_headers).status_code == 200
+        token = client.post('/api/token', data={'username': root_credentials['username'],
+            'password': root_credentials['password_hash']}).json()['access_token']
+        headers = {'Authorization': 'Bearer ' + token}
+        transcript = []
+        for method, path, values in cases:
+            response = client.request(method, path, headers=headers, **values)
+            transcript.append({'method': method, 'path': path, 'status': response.status_code,
+                               'body': response.text, 'headers': dict(response.headers)})
+    recorded = json.loads(Path(__file__).with_name('fixtures').joinpath('http-validation.json').read_text())
+    assert transcript == recorded['groups']['remaining']
 
 
 @pytest.mark.parametrize('filename', ['.hidden.png', 'CON.png', 'colon:name.png', 'pipe|name.png', 'back\\slash.png'])

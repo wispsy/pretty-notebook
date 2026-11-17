@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 from expose_api import App, TestClient as AsyncClient
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 from main import create_app
 
@@ -14,7 +14,7 @@ def test_selected_factory_keeps_shared_state_and_root_prefix(web_storage, web_fr
     assert app.framework == web_framework
     if web_framework == 'expose-api':
         assert isinstance(app.http_app, App)
-        assert app.state is app.baseline.state
+        assert not hasattr(app, 'baseline')
     with TestClient(app) as client:
         response = client.get('/notes/healthz')
         assert response.status_code == 200
@@ -24,15 +24,20 @@ def test_selected_factory_keeps_shared_state_and_root_prefix(web_storage, web_fr
         assert client.get('/notes/openapi.json').json()['openapi'] == '3.1.0'
 
 
-def test_explicit_factory_overrides_environment(web_storage, web_framework):
-    other = 'expose-api' if web_framework == 'fastapi' else 'fastapi'
-    app = create_app(db_url='sqlite://:memory:', framework=other)
-    assert app.framework == other
+def test_explicit_factory_overrides_environment(web_storage, monkeypatch):
+    monkeypatch.setenv('PNBP_WEB_FRAMEWORK', 'invalid')
+    app = create_app(db_url='sqlite://:memory:', framework='expose-api')
+    assert app.framework == 'expose-api'
     with TestClient(app) as client:
         assert client.get('/healthz').status_code == 200
 
 
-@pytest.mark.parametrize('value', ['', 'automatic', 'EXPOSE-API'])
+def test_default_runtime_is_native(web_storage, monkeypatch):
+    monkeypatch.delenv('PNBP_WEB_FRAMEWORK', raising=False)
+    assert create_app(db_url='sqlite://:memory:').framework == 'expose-api'
+
+
+@pytest.mark.parametrize('value', ['', 'automatic', 'EXPOSE-API', 'fastapi', 'starlette'])
 def test_invalid_factory_refuses_construction(web_storage, value):
     with pytest.raises(RuntimeError, match='PNBP_WEB_FRAMEWORK'):
         create_app(framework=value)
