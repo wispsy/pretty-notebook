@@ -4,7 +4,7 @@ import shutil
 from stat import S_IMODE
 
 from api import layout_api, publish_api
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app, prepare_storage
 
 

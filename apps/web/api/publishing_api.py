@@ -1,19 +1,16 @@
 """Negotiated, content-addressed publishing with checked writes."""
 
+from expose_api import HTTPException, JSONResponse, UploadFile
+from native_requests import ApplicationRequest as Request
+
 import asyncio
 import hashlib
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse
 from pydantic import Field
 
 from . import catalog, publish_api
 from .atomic_io import atomic_write_bytes
-from .permissions import require_permission
 from .notebooks import publication_store, image_directory
-
-router = APIRouter(prefix="/api/publishing", dependencies=[Depends(require_permission("publish"))])
 
 
 class CheckedPublication(publish_api.PublicationInput):
@@ -52,13 +49,11 @@ def image_digest(path):
     return hashlib.sha256(data).hexdigest()
 
 
-@router.get("/capabilities")
 async def capabilities():
     return {"protocol": "revision-1", "content_hashes": True, "checked_publications": True,
             "checked_images": True, "legacy_mode": "0.9", "single_notebook": True, "independent_notebooks": True}
 
 
-@router.get("/inventory")
 async def inventory(request: Request):
     store = await publication_store(request)
     async with store.lock:
@@ -72,7 +67,6 @@ async def inventory(request: Request):
     return {"notebook_id": store.notebook_id, "pages": pages, "images": images}
 
 
-@router.put("/publication")
 async def publish(request: Request, publication: CheckedPublication):
     expected = precondition(request)
     publish_api.publication_path(publication.name)
@@ -95,12 +89,11 @@ async def publish(request: Request, publication: CheckedPublication):
     return JSONResponse(
         {"name": publication.name, "revision": note["current_revision"],
          "etag": catalog.publication_etag(note), "rendered_hash": digest},
-        status_code=201 if expected == "*" else 200,
+        status=201 if expected == "*" else 200,
         headers={"ETag": catalog.publication_etag(note)},
     )
 
 
-@router.delete("/publication/{name:path}")
 async def delete(request: Request, name: str):
     expected = precondition(request, creating=False)
     publish_api.publication_path(name)
@@ -113,8 +106,7 @@ async def delete(request: Request, name: str):
     return {"name": name, "deleted": True}
 
 
-@router.put("/image")
-async def image(request: Request, file: Annotated[UploadFile, File(...)]):
+async def image(request: Request, file: UploadFile):
     expected = precondition(request)
     target, content = await publish_api.read_image_upload(file, directory=await image_directory(request))
     digest = hashlib.sha256(content).hexdigest()
@@ -125,4 +117,4 @@ async def image(request: Request, file: Annotated[UploadFile, File(...)]):
         await atomic_write_bytes(target, content)
     etag = image_etag(digest)
     return JSONResponse({"name": file.filename, "source_hash": digest, "etag": etag},
-                        status_code=201 if expected == "*" else 200, headers={"ETag": etag})
+                        status=201 if expected == "*" else 200, headers={"ETag": etag})

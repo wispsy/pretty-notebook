@@ -10,11 +10,10 @@ import json
 from types import SimpleNamespace
 
 from expose_api import JSONResponse, MultipartLimits, Response, UploadFile
-from fastapi import HTTPException
-from pydantic import BaseModel, ValidationError
-from starlette.responses import Response as BaselineResponse
+from expose_api import HTTPException
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from api import auth_api
+from web_errors import InputErrors
 
 MISSING = object()
 BODY_LIMIT = 16 * 1024 * 1024
@@ -47,7 +46,30 @@ class ApplicationRequest:
         self.http, self.app = request, application
         self.scope, self.method = request.scope, request.method
         self.headers = Headers(request.headers)
-        self.url = SimpleNamespace(path=request.path)
+        self.url = SimpleNamespace(path=request.path, scheme=request.scope.get('scheme', 'http'))
+
+    def get(self, name, default=None):
+        return self.scope.get(name, default)
+
+    @property
+    def cookies(self):
+        return self.http.cookies
+
+    async def body(self):
+        return await self.http.body()
+
+    async def stream(self):
+        yield await self.http.body()
+
+    async def form(self):
+        return (await self.http.resolve(UploadBody)).form
+
+    def url_for(self, name, **params):
+        if 'path' in params:
+            params['path'] = params['path'].lstrip('/')
+        path = self.http.url_for(name, **params)
+        host = self.headers.get('host', 'localhost')
+        return self.url.scheme + '://' + host + path
 
     @property
     def query_params(self):
@@ -71,9 +93,14 @@ def json_value(value):
 
 
 def response_for(value, *, status=200):
-    if isinstance(value, BaselineResponse):
-        return Response(value.body, status=value.status_code, headers=value.raw_headers)
+    if isinstance(value, Response):
+        return value
     return JSONResponse(json_value(value), status=status)
+
+
+@dataclass
+class ResponseMetadata:
+    headers: dict
 
 
 @dataclass(frozen=True)
@@ -82,6 +109,7 @@ class Authentication:
 
 
 async def authentication(request, overrides):
+    from api import auth_api
     override = overrides.get(auth_api.get_current_user)
     if override is not None:
         user = override()
@@ -114,14 +142,14 @@ async def json_body(request):
     try:
         return JSONBody(json.loads(body))
     except json.JSONDecodeError as error:
-        raise HTTPException(422, [{'type': 'json_invalid', 'loc': ['body', error.pos],
+        raise InputErrors([{'type': 'json_invalid', 'loc': ['body', error.pos],
             'msg': 'JSON decode error', 'input': {}, 'ctx': {'error': error.msg}}]) from None
     except UnicodeDecodeError:
         raise HTTPException(400, 'There was an error parsing the body') from None
 
 
 def missing_input(*path):
-    raise HTTPException(422, [{'type': 'missing', 'loc': ['body', *path],
+    raise InputErrors([{'type': 'missing', 'loc': ['body', *path],
                              'msg': 'Field required', 'input': None}])
 
 
@@ -135,7 +163,7 @@ async def model_input(request, schema):
         details = error.errors(include_url=False)
         for detail in details:
             detail['loc'] = ['body', *detail['loc']]
-        raise HTTPException(422, json_value(details)) from None
+        raise InputErrors(json_value(details)) from None
 
 
 @dataclass(frozen=True)
@@ -178,6 +206,49 @@ async def file_input(request):
         missing_input('file')
     if not isinstance(value, UploadFile):
         message = f"Expected UploadFile, received: {type(value)}"
-        raise HTTPException(422, [{'type': 'value_error', 'loc': ['body', 'file'],
+        raise InputErrors([{'type': 'value_error', 'loc': ['body', 'file'],
             'msg': 'Value error, ' + message, 'input': json_value(value), 'ctx': {'error': {}}}])
+    return value
+
+
+def validated(schema, value, location, errors):
+    """Collect ordered parameter errors before entering a service."""
+    if value is MISSING or value is None and location == ('body',):
+        errors.append({'type': 'missing', 'loc': list(location), 'msg': 'Field required', 'input': None})
+        return None
+    try:
+        return schema.validate_python(value, from_attributes=True)
+    except ValidationError as error:
+        for detail in error.errors(include_url=False):
+            detail['loc'] = [*location, *detail['loc']]
+            if detail['type'] == 'missing' and location[0] == 'query':
+                detail['input'] = None
+            errors.append(detail)
+        return None
+
+
+def raise_inputs(errors):
+    if errors:
+        raise InputErrors(json_value(errors))
+
+
+async def query_input(request, schema):
+    values = {name: request.query_params[name] for name in schema.model_fields if name in request.query_params}
+    if 'tag' in schema.model_fields:
+        values['tag'] = request.query_params.getlist('tag')
+    errors = []
+    value = validated(TypeAdapter(schema), values, ('query',), errors)
+    raise_inputs(errors)
+    return value
+
+
+async def form_input(request, schema):
+    form = (await request.resolve(UploadBody)).form
+    values = {name: form[name] for name in schema.model_fields if name in form and form[name] != ''}
+    errors = []
+    value = validated(TypeAdapter(schema), values, ('body',), errors)
+    for detail in errors:
+        if detail['type'] == 'missing':
+            detail['input'] = None
+    raise_inputs(errors)
     return value

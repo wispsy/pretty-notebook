@@ -1,23 +1,21 @@
 """Escaped, server-rendered public notebook search."""
 
-from typing import Annotated
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Query, Request
 
 from api.search_api import SearchField, results
 from api.public_index import normalize_tags
 from . import home
 
-router = APIRouter()
 
-
-@router.get("/n/search", include_in_schema=False)
-async def search(request: Request, q: Annotated[str, Query(max_length=512)] = "",
+async def search(request: Request, q: str = "",
                  field: SearchField = "any",
-                 tag: Annotated[list[str], Query()] = [],
-                 limit: Annotated[int, Query(ge=1, le=100)] = 20,
-                 offset: Annotated[int, Query(ge=0, le=10_000)] = 0):
+                 tag: list[str] = [],
+                 limit: int = 20,
+                 offset: int = 0):
     content = await home.get_template_content(request)
     try:
         filters = normalize_tags(tag)

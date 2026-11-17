@@ -3,37 +3,26 @@
 from typing import Annotated
 
 from expose_api import HTTPRequest, JSONResponse
-from fastapi import HTTPException
+from expose_api import HTTPException
 from pydantic import Field, TypeAdapter
 
 from api import operation_logs, permissions, publish_api, publishing_api
 from native_requests import (ApplicationRequest, Authentication, BODY_LIMIT, JSONBody,
     UploadBody, authentication, file_input, json_body, model_input, response_for, upload_body)
 
-STATIC_METHODS = {
-    '/api/publishment': {'POST'}, '/api/routes/preview': {'POST'}, '/api/image': {'POST'},
-    '/api/publishments': {'GET'}, '/api/images': {'GET'},
-    '/api/publishing/capabilities': {'GET'}, '/api/publishing/inventory': {'GET'},
-    '/api/publishing/publication': {'PUT'}, '/api/publishing/image': {'PUT'},
-}
-DELETE_PREFIXES = ('/api/publishment/', '/api/publishing/publication/')
-
-
-def selected(method, path):
-    return (method in STATIC_METHODS.get(path, ()) or method == 'DELETE' and
-            any(path.startswith(prefix) and len(path) > len(prefix) for prefix in DELETE_PREFIXES))
-
-
 class PublishingAudit:
     def __init__(self, application, *, services):
         self.application, self.services = application, services
 
     async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            await self.application(scope, receive, send)
+            return
         request = ApplicationRequest(HTTPRequest(scope, receive, max_body_size=BODY_LIMIT), self.services)
         try:
             receipt = await operation_logs.begin_audit(request)
         except HTTPException as error:
-            await JSONResponse({'detail': error.detail}, status=error.status_code)(scope, receive, send)
+            await JSONResponse({'detail': error.detail}, status=error.status)(scope, receive, send)
             return
         if receipt is None:
             await self.application(scope, receive, send)
@@ -102,9 +91,10 @@ def register(app, services, overrides):
     async def images_legacy(request):
         return response_for(await publish_api.images_get(context(request)))
 
+    @app.route('/api/publishment/', methods=('DELETE',), authorize=access())
     @app.route('/api/publishment/{pub_name:path}', methods=('DELETE',), authorize=access())
     async def delete_legacy(request):
-        return response_for(await publish_api.publishment_delete(request.path_params['pub_name'], context(request)))
+        return response_for(await publish_api.publishment_delete(request.path_params.get('pub_name', ''), context(request)))
 
     @app.route('/api/publishing/capabilities', authorize=access())
     async def capabilities(request):
@@ -119,9 +109,10 @@ def register(app, services, overrides):
         data = await model_input(request, checked)
         return response_for(await publishing_api.publish(context(request), data))
 
+    @app.route('/api/publishing/publication/', methods=('DELETE',), authorize=access())
     @app.route('/api/publishing/publication/{name:path}', methods=('DELETE',), authorize=access())
     async def delete(request):
-        return response_for(await publishing_api.delete(context(request), request.path_params['name']))
+        return response_for(await publishing_api.delete(context(request), request.path_params.get('name', '')))
 
     @app.route('/api/publishing/image', methods=('PUT',), authorize=access(UploadBody))
     async def image(request):

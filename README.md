@@ -4,7 +4,7 @@ Version 0.12.0 requires Python 3.14+. See the
 [dependency migration](docs/dependency-migration.md) for the upstream package changes.
 
 A Python toolkit for interconnected Markdown notebooks. The repository also
-contains a FastAPI publisher with a constrained public-deployment profile.
+contains an Expose API publisher with a constrained public-deployment profile.
 
 The `0.12.0` release supports the `pretty_notebook` Python package and its `pnbp`
 command-line interface on Python 3.14 or newer:

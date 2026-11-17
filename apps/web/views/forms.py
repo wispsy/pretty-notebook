@@ -1,17 +1,17 @@
 """Validate browser forms and store them in the local inbox."""
 
+from expose_api import RedirectResponse
+from native_requests import ApplicationRequest as Request
+
 import re
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from api.forms import save_submission
 from views import home
 
 
-router = APIRouter()
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -56,7 +56,6 @@ FORMS = {
 }
 
 
-@router.post("/forms/{form_name}", include_in_schema=False)
 async def submit_form(request: Request, form_name: str):
     definition = FORMS.get(form_name)
     if definition is None:
@@ -64,7 +63,7 @@ async def submit_form(request: Request, form_name: str):
             request,
             "shared/404.html",
             {**await home.get_template_content(request, page_title="Page not found"), "unavailable_content": form_name},
-            status_code=404,
+            status=404,
         )
 
     try:
@@ -73,8 +72,8 @@ async def submit_form(request: Request, form_name: str):
         content = await home.get_template_content(request, page_title="Contact")
         content["form_error"] = definition.error_message
         return home.templates.TemplateResponse(
-            request, definition.template, content, status_code=422
+            request, definition.template, content, status=422
         )
 
     await save_submission(form_name, fields.model_dump())
-    return RedirectResponse(request.scope.get("root_path", "") + definition.success_path, status_code=303)
+    return RedirectResponse(request.scope.get("root_path", "") + definition.success_path, status=303)

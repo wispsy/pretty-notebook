@@ -9,7 +9,7 @@ from stat import S_IMODE
 import jwt
 import pytest
 from api import auth_api, schema
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from passlib.hash import bcrypt
 

@@ -1,19 +1,19 @@
 """Notebook-scoped operation events with bounded retention and redacted fields."""
 
+from expose_api import HTTPException
+from native_requests import ApplicationRequest as Request
+
 from datetime import UTC, datetime, timedelta
 import logging
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
 from tortoise import connections
 
 from .auth_api import get_current_user
 from .notebooks import notebook_record
-from .permissions import authorize, require_permission
+from .permissions import authorize
 from pretty_notebook._internal.operation_logs import MAX_EVENTS, RETENTION_DAYS
 
-router = APIRouter()
 OPERATIONS_SCHEMA = (
     '''CREATE TABLE pnbp_operation_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,25 +83,6 @@ async def begin_audit(request):
         raise HTTPException(503, 'Operation logging is unavailable; no publication was attempted.') from None
 
 
-async def audit_request(request, call_next):
-    try:
-        receipt = await begin_audit(request)
-    except HTTPException as error:
-        return JSONResponse({'detail': error.detail}, status_code=error.status_code)
-    if receipt is None:
-        return await call_next(request)
-    event_id, operation_id = receipt
-    try:
-        response = await call_next(request)
-    except BaseException:
-        await _finish(request, event_id, 500)
-        raise
-    await _finish(request, event_id, response.status_code)
-    response.headers['X-PNBP-Operation-ID'] = operation_id
-    return response
-
-
-@router.get('/api/logs')
-async def list_logs(request: Request, limit: int = Query(100, ge=1, le=100), before: int = Query(0, ge=0), user=Depends(require_permission('logs'))):
+async def list_logs(request: Request, limit: int = 100, before: int = 0, user=None):
     record = await notebook_record(request.headers.get('X-PNBP-Notebook', 'default'))
     return await connections.get('default').execute_query_dict('SELECT id,operation_id,user_id,operation,outcome,status_code,started_at,finished_at FROM pnbp_operation_events WHERE notebook_id=? AND (?=0 OR id<?) ORDER BY id DESC LIMIT ?', [record['id'], before, before, limit])

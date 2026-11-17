@@ -1,5 +1,9 @@
 """Public pages, theme preference, and fixed routes."""
 
+from expose_api import HTTPException, RedirectResponse
+from native_requests import ApplicationRequest as Request
+from web_templates import Templates as Jinja2Templates
+
 from pathlib import Path
 from pretty_notebook.appearance import FONTS, THEME_FAMILIES, appearance_tokens, validate_appearance
 from typing import Literal
@@ -10,12 +14,8 @@ from api.publish_api import publication_path
 from api.public_navigation import snapshot_navigation
 from pretty_notebook._internal.routes import RESERVED
 from pretty_notebook._internal.icons import render_icon, replace_legacy_icons
-from fastapi import APIRouter, Form, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
-from starlette.templating import Jinja2Templates
 from api.site_api import favicon_url, read_favicon
 
-router = APIRouter()
 WEB_ROOT = Path(__file__).resolve().parents[1]
 templates = Jinja2Templates(WEB_ROOT / "templates")
 
@@ -65,14 +65,12 @@ async def get_template_content(request: Request, *, page_title: str | None = Non
     return content
 
 
-@router.get("/contact", include_in_schema=False)
 async def contact(request: Request):
     content = await get_template_content(request, page_title="Contact")
     content["form_sent"] = request.query_params.get("sent") == "1"
     return templates.TemplateResponse(request, "home/contact.html", content)
 
 
-@router.get("/", include_in_schema=False)
 async def home(request: Request):
     content = await get_template_content(request)
     navigation = await snapshot_navigation(request)
@@ -80,11 +78,10 @@ async def home(request: Request):
     return templates.TemplateResponse(request, "home/home.html", content)
 
 
-@router.post("/theme", include_in_schema=False)
 async def set_theme(
     request: Request,
-    darkmode: Literal["darkmode", "lightmode"] = Form(...),
-    return_to: str = Form("/"),
+    darkmode: Literal["darkmode", "lightmode"] = None,
+    return_to: str = "/",
 ):
     parsed = urlsplit(return_to)
     invalid = (
@@ -96,17 +93,17 @@ async def set_theme(
         or any(ord(character) < 32 for character in return_to)
     )
     if invalid:
-        raise HTTPException(status_code=400, detail="Invalid return path")
+        raise HTTPException(status=400, detail="Invalid return path")
     prefix = request.scope.get("root_path", "")
     if prefix:
         if return_to == "/":
             return_to = prefix + "/"
         elif not parsed.path.startswith(prefix + "/"):
             raise HTTPException(400, "Invalid return path")
-    response = RedirectResponse(url=return_to, status_code=status.HTTP_303_SEE_OTHER)
+    response = RedirectResponse(url=return_to, status=303)
     response.set_cookie(
         "darkmode",
-        darkmode == "darkmode",
+        str(darkmode == "darkmode"),
         httponly=True,
         max_age=31_536_000,
         samesite="lax",
@@ -117,16 +114,15 @@ async def set_theme(
     return response
 
 
-@router.post("/appearance", include_in_schema=False)
 async def set_appearance(
     request: Request,
-    font: Literal["sans", "serif", "mono"] = Form(...),
-    mode: Literal["light", "dark", "system"] | None = Form(None),
-    theme: Literal["forest", "paper", "dark", "midnight"] | None = Form(None),
-    density: Literal["comfortable", "compact"] | None = Form(None),
-    accent: str | None = Form(None),
-    radius: int | None = Form(None),
-    return_to: str = Form("/"),
+    font: Literal["sans", "serif", "mono"] = None,
+    mode: Literal["light", "dark", "system"] | None = None,
+    theme: Literal["forest", "paper", "dark", "midnight"] | None = None,
+    density: Literal["comfortable", "compact"] | None = None,
+    accent: str | None = None,
+    radius: int | None = None,
+    return_to: str = "/",
 ):
     if theme is None and mode is None:
         raise HTTPException(422, "Choose a theme or mode.")
@@ -150,7 +146,6 @@ async def set_appearance(
     return response
 
 
-@router.get("/appearance", include_in_schema=False)
 async def appearance_preferences(request: Request):
     content = await get_template_content(request, page_title="Appearance preferences")
     palette = content["APPEARANCE"]["palette"]
@@ -161,16 +156,14 @@ async def appearance_preferences(request: Request):
     return templates.TemplateResponse(request, "home/appearance.html", content)
 
 
-@router.get("/favicon.ico", include_in_schema=False)
 async def favicon(request: Request):
     content = await read_favicon(request)
     if content is None:
-        raise HTTPException(status_code=404, detail="Favicon not found")
-    return RedirectResponse(favicon_url(request, content), status_code=307,
+        raise HTTPException(status=404, detail="Favicon not found")
+    return RedirectResponse(favicon_url(request, content), status=307,
                             headers={"Cache-Control": "no-store"})
 
 
-@router.get("/{content:path}", include_in_schema=False)
 async def content(request: Request, content: str, related: bool = True):
     if content.split("/", 1)[0] in RESERVED - {"n"}:
         raise HTTPException(404, "Not Found")
@@ -181,7 +174,7 @@ async def content(request: Request, content: str, related: bool = True):
         publication_path(content)
         resolved = await request.app.state.publications.resolve(content)
         if resolved and resolved["canonical_route"] != "/" + content:
-            return RedirectResponse(template_content["root_path"] + resolved["canonical_route"], status_code=308)
+            return RedirectResponse(template_content["root_path"] + resolved["canonical_route"], status=308)
         page = await request.app.state.publications.read_page(content)
         if page is None:
             raise FileNotFoundError
@@ -192,7 +185,7 @@ async def content(request: Request, content: str, related: bool = True):
             request,
             "shared/404.html",
             template_content,
-            status_code=status.HTTP_404_NOT_FOUND,
+            status=404,
         )
 
     template_content["page_title"] = resolved["title"] if resolved else content

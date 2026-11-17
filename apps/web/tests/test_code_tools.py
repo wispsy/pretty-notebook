@@ -1,7 +1,7 @@
 import hashlib
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 
 

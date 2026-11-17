@@ -4,7 +4,7 @@ from contextlib import closing
 
 import pytest
 from api import layout_api
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from main import create_app
 from views import forms
 
