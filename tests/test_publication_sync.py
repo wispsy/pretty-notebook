@@ -2,7 +2,7 @@ import os
 import time
 
 import pytest
-import requests
+from pretty_notebook._internal import http
 from cli_runner import CliRunner
 
 from pretty_notebook import Notebook
@@ -21,7 +21,7 @@ class FakeResponse:
 
 	def raise_for_status(self):
 		if self.status_code >= 400:
-			raise requests.HTTPError(f"HTTP {self.status_code}", response=self)
+			raise http.HTTPError(f"HTTP {self.status_code}", response=self)
 
 	def __str__(self):
 		return f"<FakeResponse [{self.status_code}]>"
@@ -76,7 +76,7 @@ def test_failed_page_upload_aborts_pruning(
 	]
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(publications=publications, calls=calls),
 	)
 
@@ -88,10 +88,10 @@ def test_failed_page_upload_aborts_pruning(
 		deleted.append(url)
 		return FakeResponse({"pub_name": url.rsplit("/", 1)[-1]})
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", failed_post)
-	monkeypatch.setattr("pnbp.models.notebook.requests.delete", record_delete)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", failed_post)
+	monkeypatch.setattr("pnbp.models.notebook.http.delete", record_delete)
 
-	with pytest.raises(requests.HTTPError, match="500"):
+	with pytest.raises(http.HTTPError, match="500"):
 		notebook.post_commits_to_web_api(prune=True)
 
 	assert deleted == []
@@ -117,7 +117,7 @@ def test_failed_image_upload_aborts_pruning(
 	deleted = []
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(
 			publications=[
 				{"pub_name": "stale.html", "mod_date": "2000-01-01T00:00:00"},
@@ -133,10 +133,10 @@ def test_failed_image_upload_aborts_pruning(
 		deleted.append(url)
 		return FakeResponse({"pub_name": url.rsplit("/", 1)[-1]})
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", post)
-	monkeypatch.setattr("pnbp.models.notebook.requests.delete", record_delete)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", post)
+	monkeypatch.setattr("pnbp.models.notebook.http.delete", record_delete)
 
-	with pytest.raises(requests.HTTPError, match="500"):
+	with pytest.raises(http.HTTPError, match="500"):
 		notebook.post_commits_to_web_api(prune=True)
 
 	assert deleted == []
@@ -153,7 +153,7 @@ def test_empty_notebook_does_not_prune_by_default(
 	deleted = []
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(
 			publications=[
 				{"pub_name": "existing.html", "mod_date": "2000-01-01T00:00:00"},
@@ -161,7 +161,7 @@ def test_empty_notebook_does_not_prune_by_default(
 		),
 	)
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.delete",
+		"pnbp.models.notebook.http.delete",
 		lambda url, **kwargs: deleted.append(url),
 	)
 
@@ -181,7 +181,7 @@ def test_explicit_prune_deletes_unlisted_pages(
 	deleted = []
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(
 			publications=[
 				{"pub_name": "existing.html", "mod_date": "2000-01-01T00:00:00"},
@@ -193,7 +193,7 @@ def test_explicit_prune_deletes_unlisted_pages(
 		deleted.append(url)
 		return FakeResponse({"pub_name": "existing.html"})
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.delete", record_delete)
+	monkeypatch.setattr("pnbp.models.notebook.http.delete", record_delete)
 
 	notebook.post_commits_to_web_api(prune=True)
 
@@ -212,7 +212,7 @@ def test_failed_prune_response_is_reported(
 	notebook.API_BASE = "https://publish.example"
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(
 			publications=[
 				{"pub_name": "existing.html", "mod_date": "2000-01-01T00:00:00"},
@@ -220,11 +220,11 @@ def test_failed_prune_response_is_reported(
 		),
 	)
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.delete",
+		"pnbp.models.notebook.http.delete",
 		lambda *args, **kwargs: FakeResponse(status_code=500),
 	)
 
-	with pytest.raises(requests.HTTPError, match="500"):
+	with pytest.raises(http.HTTPError, match="500"):
 		notebook.post_commits_to_web_api(prune=True)
 
 
@@ -243,7 +243,7 @@ def test_refresh_images_is_explicit_and_independent_of_page_freshness(
 	posts = []
 
 	monkeypatch.setattr(
-		"pnbp.models.notebook.requests.get",
+		"pnbp.models.notebook.http.get",
 		remote_inventory(
 			publications=[
 				{"pub_name": "public.html", "mod_date": "2999-01-01T00:00:00"},
@@ -258,7 +258,7 @@ def test_refresh_images_is_explicit_and_independent_of_page_freshness(
 		posts.append((url, kwargs))
 		return FakeResponse(status_code=201)
 
-	monkeypatch.setattr("pnbp.models.notebook.requests.post", record_post)
+	monkeypatch.setattr("pnbp.models.notebook.http.post", record_post)
 
 	notebook.post_commits_to_web_api(refresh_images=True)
 
@@ -318,7 +318,7 @@ def test_commit_remote_reports_http_failure_with_nonzero_status(
 	monkeypatch,
 ) -> None:
 	def fail(*args, **kwargs):
-		raise requests.HTTPError("HTTP 500")
+		raise http.HTTPError("HTTP 500")
 
 	monkeypatch.setattr(Notebook, "post_commits_to_web_api", fail)
 	result = CliRunner().invoke(cli, ["commit-remote"])

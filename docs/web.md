@@ -15,7 +15,7 @@ wheel.
 
 | Area | Supported contract |
 | --- | --- |
-| Platform | Linux x86_64 with CPython 3.11 or 3.14 and the hash-locked wheel set |
+| Platform | Linux x86_64 with CPython 3.14 and the hash-locked wheel set |
 | Application | One Gunicorn instance with 1–4 `uvicorn_worker.UvicornWorker` processes; four by default |
 | State | One local persistent data directory containing one SQLite database, pages, images, and layout settings |
 | Publication ownership | Explicit notebook owners with isolated namespaces, inventories and pruning |
@@ -48,7 +48,7 @@ cd pnbp
 : "${PNBP_REVISION:?Set a reviewed 0.11 commit SHA}"
 git checkout --detach "$PNBP_REVISION"
 
-python3.11 -m venv .venv
+python3.14 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install \
   --require-hashes \
@@ -62,7 +62,7 @@ python3.11 -m venv .venv
 .venv/bin/python -m pip check
 ```
 
-The lock is verified for Linux x86_64 on CPython 3.11 and 3.14. Other
+The lock is verified for Linux x86_64 on CPython 3.14. Other
 platforms are not part of the supported public-deployment profile.
 
 The separate storage locks qualify the unreleased Backpack Store snapshot
@@ -70,19 +70,13 @@ facility by immutable source revision and archive hash. They install no web
 framework or ORM replacement. See [storage extraction](storage-extraction.md)
 for ownership, compatibility and stopped-service rollback.
 
-For dependency updates, regenerate from the repository root and confirm that
-both Python targets produce the same file:
+For dependency updates, regenerate from the repository root for the supported
+Python target:
 
 ```bash
 uv pip compile apps/web/requirements.txt --generate-hashes \
-  --python-version 3.11 --python-platform x86_64-unknown-linux-gnu \
-  --no-annotate --no-header --output-file apps/web/requirements.lock
-
-uv pip compile apps/web/requirements.txt --generate-hashes \
   --python-version 3.14 --python-platform x86_64-unknown-linux-gnu \
-  --no-annotate --no-header --output-file /tmp/requirements-3.14.lock
-
-cmp apps/web/requirements.lock /tmp/requirements-3.14.lock
+  --no-annotate --no-header --output-file apps/web/requirements.lock
 ```
 
 ## Configure secrets and persistent state
@@ -365,9 +359,9 @@ python -m coverage run --source=api,views,main -m pytest tests
 python -m coverage report --show-missing --fail-under=90
 ```
 
-CI runs the suite and the exact four-worker Gunicorn command on Python 3.11 and
-3.14. It also checks that an allowed host reaches `/healthz` and an unlisted
-host is rejected.
+CI runs the suite and the exact four-worker Gunicorn command on Python 3.14.
+It also checks that an allowed host reaches `/healthz` and an unlisted host is
+rejected.
 
 ## Explicit support decision
 

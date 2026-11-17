@@ -23,7 +23,7 @@ state, `/etc/pretty-notebook/environment` for configuration, and
 `/var/backups/pretty-notebook` for private checkpoints. `--checkout`,
 `--data-dir`, `--env-file`, `--backup-dir`, `--service`, `--user`, `--python`,
 `--port`, `--workers`, `--prefix`, `--tls-cert` and `--tls-key` are configurable.
-Use Python 3.11 or 3.14 and 1–4 workers; four is the default. Code, state,
+Use Python 3.14 and 1–4 workers; four is the default. Code, state,
 configuration and backups must remain separate. Paths reject shell/systemd
 metacharacters. Keep code/state outside protected home and temporary directories
 when using the supplied unit's `ProtectHome` and `PrivateTmp` settings.

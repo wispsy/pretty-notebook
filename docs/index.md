@@ -17,6 +17,7 @@ pnbp
 tutorials
 versions
 package-migration
+dependency-migration
 settings
 editing
 local-search

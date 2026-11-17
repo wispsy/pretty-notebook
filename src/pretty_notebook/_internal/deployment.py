@@ -51,8 +51,8 @@ class DeploySpec:
             raise ValueError('Checkout, data and backup directories must be separate.')
         if any(self.env_file.is_relative_to(path) for path in directories):
             raise ValueError('Environment file must be separate from code, data and backups.')
-        if self.python not in ('python3.11', 'python3.14'):
-            raise ValueError('Use supported Python 3.11 or 3.14.')
+        if self.python != 'python3.14':
+            raise ValueError('Use supported Python 3.14.')
         if type(self.port) is not int or not 1024 <= self.port <= 65535:
             raise ValueError('Port must be from 1024 to 65535.')
         if type(self.workers) is not int or not 1 <= self.workers <= 4:

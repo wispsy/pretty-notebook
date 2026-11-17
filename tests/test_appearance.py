@@ -43,7 +43,7 @@ def test_publishing_preserves_appearance_without_sending_credentials(tmp_path, m
     def post(url, **kwargs):
         captured.update(kwargs)
         return Response()
-    monkeypatch.setattr(publishing.requests, 'post', post)
+    monkeypatch.setattr(publishing.http, 'post', post)
     notebook.web_settings_post()
     assert captured['json']['APPEARANCE'] == {'palette': 'paper', 'font': 'serif'}
     assert 'API_TOKEN' not in captured['json'] and 'API_BASE' not in captured['json']

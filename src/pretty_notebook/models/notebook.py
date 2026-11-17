@@ -6,7 +6,7 @@ import random
 from collections.abc import Iterator
 from pathlib import Path
 
-import requests as requests
+from pretty_notebook._internal import http
 
 from pretty_notebook.settings import load_settings
 from pretty_notebook._internal import storage as _storage, rendering as _rendering, search as _search, publishing as _publishing, identities as _identities, links as _links, moves as _moves, journal as _journal, routes as _routes, navigation as _navigation
@@ -359,7 +359,7 @@ class Notebook:
 		return target, content_type
 
 	def _publication_preflight(self, *, include_images=False):
-		"""Validate all publication inputs before writes or HTTP requests."""
+		"""Validate all publication inputs before writes or HTTP http."""
 		_journal.ensure_clear(self.NOTE_PATH)
 		notes = tuple(note for note in self.notes.values() if self.is_publishable(note))
 		_routes.plan_routes(self, notes)

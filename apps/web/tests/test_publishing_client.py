@@ -4,13 +4,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
-import requests
+from pretty_notebook._internal import http
 from api import publishing_api
 from pretty_notebook import Notebook
 from pretty_notebook._internal import publication_plan as plans
 
 
-class RequestsResponse:
+class ClientResponse:
     def __init__(self, response):
         self.response = response
         self.status_code, self.headers = response.status_code, response.headers
@@ -20,7 +20,7 @@ class RequestsResponse:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            raise requests.HTTPError(f"HTTP {self.status_code}", response=self)
+            raise http.HTTPError(f"HTTP {self.status_code}", response=self)
 
 
 @pytest.fixture
@@ -40,13 +40,13 @@ def publishing_transport(client, monkeypatch):
             response = client.request(method, url, **kwargs)
             if method == "PUT" and url.endswith("/publication") and self.lose_page and response.status_code < 400:
                 self.lose_page = False
-                raise requests.ConnectionError("response lost after commit")
-            return RequestsResponse(response)
+                raise http.ConnectionError("response lost after commit")
+            return ClientResponse(response)
     transport = Transport()
     for method in ("get", "post", "put", "delete"):
         def send(url, _method=method.upper(), **kwargs):
             return transport.call(_method, url, **kwargs)
-        monkeypatch.setattr(requests, method, send)
+        monkeypatch.setattr(http, method, send)
     return transport
 
 
@@ -100,7 +100,7 @@ def test_actual_server_stale_revision_cannot_be_overwritten_or_pruned(notebook, 
         response = client.post("/api/publishment", headers=auth_headers, json={"name": "note", "content": "Concurrent winner"})
         assert response.status_code == 201
     publishing_transport.before_put = concurrent_update
-    with pytest.raises(requests.HTTPError, match="412"):
+    with pytest.raises(http.HTTPError, match="412"):
         notebook.post_commits_to_web_api(prune=True)
     assert "Concurrent winner" in client.get("/note").text
     assert client.get("/unlisted").status_code == 200
@@ -110,7 +110,7 @@ def test_actual_server_stale_revision_cannot_be_overwritten_or_pruned(notebook, 
 
 def test_actual_lost_response_recovery_and_image_storage_failure_stop_before_prune(notebook, publishing_transport, client, auth_headers, monkeypatch):
     publishing_transport.lose_page = True
-    with pytest.raises(requests.ConnectionError):
+    with pytest.raises(http.ConnectionError):
         notebook.post_commits_to_web_api()
     assert inventory(client, auth_headers)["pages"][0]["revision"] == 1
     notebook.post_commits_to_web_api()
@@ -120,7 +120,7 @@ def test_actual_lost_response_recovery_and_image_storage_failure_stop_before_pru
     async def fail_write(*args):
         raise OSError("image storage unavailable")
     monkeypatch.setattr(publishing_api, "atomic_write_bytes", fail_write)
-    with pytest.raises(requests.HTTPError, match="500"):
+    with pytest.raises(http.HTTPError, match="500"):
         notebook.post_commits_to_web_api(prune=True)
     assert client.get("/unlisted").status_code == 200
     assert not any(method == "DELETE" for method, _ in publishing_transport.calls)

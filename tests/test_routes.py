@@ -96,9 +96,9 @@ def test_remote_collision_preview_stops_before_uploads_or_prune(tmp_path, monkey
 		return SimpleNamespace(json=lambda: {"valid": False, "conflicts": [{"name": "python/example"}]}, raise_for_status=lambda: None)
 	def unexpected(*args, **kwargs):
 		raise AssertionError("No uploads or inventory/prune requests after a route conflict")
-	monkeypatch.setattr("pnbp._publishing.requests.post", preview)
-	monkeypatch.setattr("pnbp._publishing.requests.get", unexpected)
-	monkeypatch.setattr("pnbp._publishing.requests.delete", unexpected)
+	monkeypatch.setattr("pnbp._publishing.http.post", preview)
+	monkeypatch.setattr("pnbp._publishing.http.get", unexpected)
+	monkeypatch.setattr("pnbp._publishing.http.delete", unexpected)
 	with pytest.raises(ValueError, match="Remote route preview"):
 		nb.post_commits_to_web_api(prune=True, mode="legacy")
 	assert len(requests) == 1 and requests[0][0].endswith("/api/routes/preview")

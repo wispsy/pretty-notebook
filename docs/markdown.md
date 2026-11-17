@@ -1,5 +1,10 @@
 # Typed Markdown
 
+The development checkout uses published Parse MD for generic immutable values,
+source spans and bounded syntax. `pretty_notebook.markdown` retains compatibility
+imports, notebook renderers and the optional legacy adapter. See
+[dependency migration](dependency-migration.md).
+
 The `pretty_notebook.markdown` module composes immutable Markdown values. It is
 separate from the existing string-like notebook components. The
 0.11 release uses the in-house typed renderer by default; the historical 0.10.0

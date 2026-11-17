@@ -7,7 +7,7 @@ from functools import wraps
 from pathlib import Path
 
 from expose_interface import CommandError, Context, Interface, UsageError, argument, flag, option
-import requests
+from pretty_notebook._internal import http
 
 from ._internal.cli_tools import edit_text, existing_file, limit_value, offset_value
 
@@ -309,7 +309,7 @@ def _publish_notebook(notebook, **kwargs):
 	"""Run publication with concise CLI reporting for transport failures."""
 	try:
 		return notebook.post_commits_to_web_api(**kwargs)
-	except requests.RequestException as error:
+	except http.RequestException as error:
 		raise CommandError(f'Publication failed: {error}') from error
 
 
@@ -369,7 +369,7 @@ def commit_stage(context: Context, *, output_json: bool = False, limit = 200, mo
 	if output_json:
 		try:
 			_json_echo(nb.publication_plan(limit=limit, mode=mode, prune=prune, refresh_images=refresh_images, accept_remote=accept_remote), nb)
-		except requests.RequestException as error:
+		except http.RequestException as error:
 			raise CommandError("Could not read the remote publication inventory.") from error
 	else:
 		_publish_notebook(nb, stage_only=True, mode=mode, prune=prune, refresh_images=refresh_images, accept_remote=accept_remote)
@@ -399,7 +399,7 @@ def favicon(context: Context, path, *, local: bool = False):
 		nb.API_BASE = "http://127.0.0.1:8000"
 	try:
 		response = nb.post_favicon(path)
-	except requests.RequestException as error:
+	except http.RequestException as error:
 		raise CommandError("Could not update the site favicon.") from error
 	print(response.json()["url"])
 
