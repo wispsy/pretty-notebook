@@ -88,3 +88,23 @@ The native request reader retains its finite 8 KiB / 128-field query profile and
 16 MiB body profile. Valid bounded search inputs fit that query budget. Wire
 refusals retain their selected 4xx status and public detail rather than entering
 the sanitized unexpected-failure boundary.
+
+## Remaining handler stage
+
+PNB-WEB-04A moves accounts, permissions, notebooks, logs, inbox, layout, appearance,
+favicons, public pages, forms, navigation and static delivery onto explicit native
+bindings. Pydantic remains application-owned, including ordered path/body errors,
+form defaults, query lists and syntax-before-authentication behavior. Shared
+services retain the same authorization, storage and transaction ownership.
+Templates retain autoescaping and debug context; cookies, redirects, asset URLs,
+CSP and cache policy preserve mounted root prefixes. Only unsupported methods,
+generated reference pages and lifecycle still delegate during this stage.
+
+Static assets use Expose API's rooted static profile. Published images use an
+application-selected private tree and native owned file responses so existing
+accepted POSIX filenames remain downloadable. Symlinks and root escapes are
+refused; the tree and its ancestors must stay application-owned. Native file
+responses use weak metadata validators and a single byte-range profile; multiple
+ranges receive 416. These static validators are intentionally independent of
+checked publishing's existing strong revision/hash ETags. Known manifest assets
+retain immutable caching; pages do not gain API no-store headers.

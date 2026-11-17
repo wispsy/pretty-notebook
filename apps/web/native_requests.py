@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 from expose_api import JSONResponse, MultipartLimits, Response, UploadFile
 from fastapi import HTTPException
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from starlette.responses import Response as BaselineResponse
 
 from api import auth_api
@@ -47,7 +47,30 @@ class ApplicationRequest:
         self.http, self.app = request, application
         self.scope, self.method = request.scope, request.method
         self.headers = Headers(request.headers)
-        self.url = SimpleNamespace(path=request.path)
+        self.url = SimpleNamespace(path=request.path, scheme=request.scope.get('scheme', 'http'))
+
+    def get(self, name, default=None):
+        return self.scope.get(name, default)
+
+    @property
+    def cookies(self):
+        return self.http.cookies
+
+    async def body(self):
+        return await self.http.body()
+
+    async def stream(self):
+        yield await self.http.body()
+
+    async def form(self):
+        return (await self.http.resolve(UploadBody)).form
+
+    def url_for(self, name, **params):
+        if 'path' in params:
+            params['path'] = params['path'].lstrip('/')
+        path = self.http.url_for(name, **params)
+        host = self.headers.get('host', 'localhost')
+        return self.url.scheme + '://' + host + path
 
     @property
     def query_params(self):
@@ -70,7 +93,22 @@ def json_value(value):
     return value
 
 
+class TemplateResponse(Response):
+    """Retain template debug metadata while the baseline remains selectable."""
+
+    def __init__(self, response):
+        super().__init__(response.body, status=response.status_code, headers=response.raw_headers)
+        self.response = response
+
+    async def __call__(self, scope, receive, send):
+        await self.response(scope, receive, send)
+
+
 def response_for(value, *, status=200):
+    if isinstance(value, Response):
+        return value
+    if isinstance(value, BaselineResponse) and hasattr(value, 'context'):
+        return TemplateResponse(value)
     if isinstance(value, BaselineResponse):
         return Response(value.body, status=value.status_code, headers=value.raw_headers)
     return JSONResponse(json_value(value), status=status)
@@ -180,4 +218,47 @@ async def file_input(request):
         message = f"Expected UploadFile, received: {type(value)}"
         raise HTTPException(422, [{'type': 'value_error', 'loc': ['body', 'file'],
             'msg': 'Value error, ' + message, 'input': json_value(value), 'ctx': {'error': {}}}])
+    return value
+
+
+def validated(schema, value, location, errors):
+    """Collect ordered parameter errors before entering a service."""
+    if value is MISSING or value is None and location == ('body',):
+        errors.append({'type': 'missing', 'loc': list(location), 'msg': 'Field required', 'input': None})
+        return None
+    try:
+        return schema.validate_python(value, from_attributes=True)
+    except ValidationError as error:
+        for detail in error.errors(include_url=False):
+            detail['loc'] = [*location, *detail['loc']]
+            if detail['type'] == 'missing' and location[0] == 'query':
+                detail['input'] = None
+            errors.append(detail)
+        return None
+
+
+def raise_inputs(errors):
+    if errors:
+        raise HTTPException(422, json_value(errors))
+
+
+async def query_input(request, schema):
+    values = {name: request.query_params[name] for name in schema.model_fields if name in request.query_params}
+    if 'tag' in schema.model_fields:
+        values['tag'] = request.query_params.getlist('tag')
+    errors = []
+    value = validated(TypeAdapter(schema), values, ('query',), errors)
+    raise_inputs(errors)
+    return value
+
+
+async def form_input(request, schema):
+    form = (await request.resolve(UploadBody)).form
+    values = {name: form[name] for name in schema.model_fields if name in form and form[name] != ''}
+    errors = []
+    value = validated(TypeAdapter(schema), values, ('body',), errors)
+    for detail in errors:
+        if detail['type'] == 'missing':
+            detail['input'] = None
+    raise_inputs(errors)
     return value

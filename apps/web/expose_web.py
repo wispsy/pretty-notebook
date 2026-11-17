@@ -5,12 +5,14 @@ import logging
 from expose_api import App, JSONResponse, Response
 from fastapi import HTTPException
 from pydantic import BaseModel, Field, ValidationError
+from tortoise.exceptions import DoesNotExist, IntegrityError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from api.health import health_status
 from api.search_api import SearchField, results
 from native_requests import ApplicationRequest, json_value
 from native_publishing import PublishingAudit, register, selected
+import native_routes
 
 
 class SearchQuery(BaseModel):
@@ -38,8 +40,12 @@ class _SecurityHeaders:
                     b'referrer-policy': 'strict-origin-when-cross-origin',
                     b'permissions-policy': 'camera=(), geolocation=(), microphone=()',
                     b'content-security-policy': self.assets.security_policy(),
-                    b'cache-control': 'no-store',
                 }
+                path = scope['path'].removeprefix(scope.get('root_path', ''))
+                if event['status'] in {200, 206, 304} and self.assets.cacheable(path):
+                    selected[b'cache-control'] = 'public, max-age=31536000, immutable'
+                if path.startswith('/api') or path == '/healthz':
+                    selected[b'cache-control'] = 'no-store'
                 headers.extend((name, value.encode('latin-1')) for name, value in selected.items()
                                if name not in existing)
                 event = {**event, 'headers': headers}
@@ -71,6 +77,14 @@ class ExposedApplication:
         async def public_error(request, error):
             return JSONResponse({'detail': json_value(error.detail)}, status=error.status_code,
                                 headers=error.headers or ())
+
+        @self.http_app.exception_handler(DoesNotExist)
+        async def missing_record(request, error):
+            return JSONResponse({'detail': str(error)}, status=404)
+
+        @self.http_app.exception_handler(IntegrityError)
+        async def invalid_record(request, error):
+            return JSONResponse({'detail': [{'loc': [], 'msg': str(error), 'type': 'IntegrityError'}]}, status=422)
 
         @self.http_app.exception_handler(Exception)
         async def internal_error(request, error):
@@ -104,6 +118,7 @@ class ExposedApplication:
             return JSONResponse(value)
 
         register(self.http_app, baseline, self.dependency_overrides)
+        native_routes.register(self.http_app, baseline)
 
     async def __call__(self, scope, receive, send):
         root = (self.root_path or scope.get('root_path', '')).rstrip('/')
@@ -111,7 +126,7 @@ class ExposedApplication:
         if root and (path == root or path.startswith(root + '/')):
             path = path[len(root):] or '/'
         if scope['type'] == 'http' and ((scope['method'] == 'GET' and path in self.native_paths)
-                                      or selected(scope['method'], path)):
+                                      or selected(scope['method'], path) or native_routes.selected(scope['method'], path)):
             await self.http_app({**scope, 'root_path': root}, receive, send)
         else:
             # Non-GET method behavior and unported groups retain the recorded

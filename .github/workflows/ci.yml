@@ -142,17 +142,17 @@ jobs:
           python -m pip check
 
       - name: Compile web sources
-        run: python -W error -m compileall -q api views main.py web_config.py assets.py install_assets.py tests
+        run: python -W error -m compileall -q api views main.py expose_web.py native_requests.py native_publishing.py native_routes.py native_assets.py web_config.py assets.py install_assets.py tests
 
       - name: Check release-blocking lint rules
-        run: python -m ruff check --select E9,F63,F7,F82,W605 api views main.py web_config.py assets.py install_assets.py tests
+        run: python -m ruff check --select E9,F63,F7,F82,W605 api views main.py expose_web.py native_requests.py native_publishing.py native_routes.py native_assets.py web_config.py assets.py install_assets.py tests
 
       - name: Verify reviewed local browser assets
         run: python install_assets.py --check
 
       - name: Run web integration tests
         run: |
-          python -m coverage run --branch --source=api,views,main,expose_web,native_requests,native_publishing,assets,install_assets,web_config -m pytest tests
+          python -m coverage run --branch --source=api,views,main,expose_web,native_requests,native_publishing,native_routes,native_assets,assets,install_assets,web_config -m pytest tests
           python -m coverage report --show-missing --fail-under=95
 
       - name: Set up JavaScript test runtime
